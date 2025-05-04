@@ -27,7 +27,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { predictRevenue, type RevenuePredictionOutput } from '@/ai/flows/revenue-prediction';
 import { useToast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, AlertTriangle, Info, DollarSign, Activity, AlertCircle } from 'lucide-react';
+import { Loader2, TrendingUp, AlertTriangle, Info, DollarSign, Activity, AlertCircle, TrendingUpIcon } from 'lucide-react'; // Import TrendingUpIcon
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"; // Import Alert components
 
 
@@ -341,7 +341,7 @@ export default function DashboardPage() {
                       </>
                     ) : (
                       <>
-                        <TrendingUpIcon className="mr-2 h-4 w-4" /> Predict Revenue
+                        <TrendingUp className="mr-2 h-4 w-4" /> Predict Revenue {/* Use TrendingUp here */}
                       </>
                     )}
                   </Button>
