@@ -8,76 +8,80 @@ body {
 
 @layer base {
   :root {
-    --background: 220 20% 98%; /* Off-White */
-    --foreground: 220 20% 20%; /* Dark Gray */
+    --background: 0 0% 98%; /* Off-White */
+    --foreground: 0 0% 10%; /* Dark Gray/Near Black */
     --card: 0 0% 100%; /* White */
-    --card-foreground: 220 20% 20%;
+    --card-foreground: 0 0% 10%;
     --popover: 0 0% 100%;
-    --popover-foreground: 220 20% 20%;
-    --primary: 260 80% 50%; /* Purple */
-    --primary-foreground: 0 0% 100%; /* White */
-    --secondary: 230 30% 90%; /* Light Blue-Gray */
-    --secondary-foreground: 220 20% 20%;
-    --muted: 230 30% 90%;
-    --muted-foreground: 220 15% 45%;
-    --accent: 40 95% 55%; /* Orange-Gold */
-    --accent-foreground: 0 0% 10%;
-    --destructive: 0 70% 55%; /* Soft Red */
+    --popover-foreground: 0 0% 10%;
+    --primary: 0 70% 50%; /* Red */
+    --primary-foreground: 0 0% 98%; /* Off-white for contrast on red */
+    --secondary: 0 0% 94%; /* Light Gray */
+    --secondary-foreground: 0 0% 10%;
+    --muted: 0 0% 94%;
+    --muted-foreground: 0 0% 40%;
+    --accent: 0 0% 50%; /* Medium Gray */
+    --accent-foreground: 0 0% 98%; /* White text on gray accent */
+    --destructive: 0 80% 55%; /* Brighter Red */
     --destructive-foreground: 0 0% 98%;
-    --border: 220 30% 85%;
-    --input: 220 20% 88%;
-    --ring: 260 80% 50%; /* Purple Ring */
-    --chart-1: 30 80% 50%;
-    --chart-2: 120 60% 40%;
-    --chart-3: 240 70% 55%;
-    --chart-4: 300 50% 60%;
-    --chart-5: 60 90% 45%;
+    --border: 0 0% 85%; /* Light Gray border */
+    --input: 0 0% 90%; /* Slightly darker input background */
+    --ring: 0 70% 50%; /* Red Ring */
+    /* Charts - Using Red/Gray theme */
+    --chart-1: 0 70% 60%; /* Lighter Red */
+    --chart-2: 0 0% 50%; /* Gray */
+    --chart-3: 0 70% 40%; /* Darker Red */
+    --chart-4: 0 0% 70%; /* Light Gray */
+    --chart-5: 0 70% 55%; /* Mid Red */
     --radius: 0.75rem; /* Slightly more rounded */
     --shadow: 220 10% 20%; /* Shadow color */
-    --sidebar-background: 0 0% 98%; /* Slightly off-white for sidebar */
-    --sidebar-foreground: 0 0% 3.9%;
-    --sidebar-primary: 260 80% 50%; /* Purple */
-    --sidebar-primary-foreground: 0 0% 98%; /* White */
-    --sidebar-accent: 0 0% 94.1%; /* Light Gray for sidebar accent */
-    --sidebar-accent-foreground: 0 0% 3.9%; /* Dark Gray/Black */
-    --sidebar-border: 0 0% 89.8%;
-    --sidebar-ring: 260 80% 50%; /* Purple */
+    /* Sidebar - Adjusted for Red/Black/Gray theme */
+    --sidebar-background: 0 0% 98%; /* Off-White */
+    --sidebar-foreground: 0 0% 10%; /* Dark Gray/Black */
+    --sidebar-primary: 0 70% 50%; /* Red */
+    --sidebar-primary-foreground: 0 0% 98%; /* Off-white */
+    --sidebar-accent: 0 0% 92%; /* Slightly darker gray accent */
+    --sidebar-accent-foreground: 0 0% 10%; /* Dark Gray/Black */
+    --sidebar-border: 0 0% 85%; /* Light Gray border */
+    --sidebar-ring: 0 70% 50%; /* Red */
   }
 
   .dark {
-    --background: 220 15% 15%; /* Dark Slate */
-    --foreground: 220 20% 90%; /* Light Gray */
-    --card: 220 15% 15%; /* Dark Slate */
-    --card-foreground: 220 20% 90%;
-    --popover: 220 15% 15%; /* Dark Slate */
-    --popover-foreground: 220 20% 90%;
-    --primary: 260 60% 60%; /* Light Purple */
-    --primary-foreground: 220 10% 10%; /* Near Black */
-    --secondary: 230 30% 30%; /* Darker Blue-Gray */
-    --secondary-foreground: 220 20% 80%;
-    --muted: 220 15% 25%;
-    --muted-foreground: 220 10% 60%;
-    --accent: 40 90% 60%; /* Bright Gold */
-    --accent-foreground: 220 10% 10%;
-    --destructive: 0 60% 60%; /* Soft Red */
-    --destructive-foreground: 0 0% 90%;
-    --border: 220 10% 30%;
-    --input: 220 10% 25%;
-    --ring: 260 60% 60%; /* Light Purple */
-    --chart-1: 30 70% 60%;
-    --chart-2: 120 50% 50%;
-    --chart-3: 240 60% 65%;
-    --chart-4: 300 40% 70%;
-    --chart-5: 60 80% 55%;
-    --shadow: 220 5% 10%; /* Shadow color for dark mode */
-    --sidebar-background: 220 10% 10%; /* Dark Slate */
-    --sidebar-foreground: 220 20% 90%; /* Light Gray */
-    --sidebar-primary: 260 60% 60%; /* Light Purple */
-    --sidebar-primary-foreground: 220 10% 10%; /* Near Black */
-    --sidebar-accent: 220 15% 20%; /* Darker accent for sidebar */
-    --sidebar-accent-foreground: 220 20% 80%; /* White */
-    --sidebar-border: 220 10% 30%;
-    --sidebar-ring: 260 60% 60%; /* Light Purple */
+    --background: 0 0% 8%; /* Very Dark Gray/Near Black */
+    --foreground: 0 0% 95%; /* Near White */
+    --card: 0 0% 12%; /* Slightly lighter dark */
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 70% 60%; /* Brighter Red */
+    --primary-foreground: 0 0% 10%; /* Dark text on bright red */
+    --secondary: 0 0% 20%; /* Dark Gray */
+    --secondary-foreground: 0 0% 80%; /* Light Gray */
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 60%; /* Medium Gray */
+    --accent: 0 0% 70%; /* Lighter Gray */
+    --accent-foreground: 0 0% 10%; /* Dark text on light gray accent */
+    --destructive: 0 80% 65%; /* Brighter Red */
+    --destructive-foreground: 0 0% 10%;
+    --border: 0 0% 25%; /* Darker Gray border */
+    --input: 0 0% 18%; /* Slightly lighter dark input */
+    --ring: 0 70% 60%; /* Brighter Red */
+    /* Charts - Adjusted for Dark Red/Gray theme */
+    --chart-1: 0 70% 70%; /* Light Red */
+    --chart-2: 0 0% 60%; /* Gray */
+    --chart-3: 0 70% 50%; /* Mid Red */
+    --chart-4: 0 0% 80%; /* Light Gray */
+    --chart-5: 0 70% 65%; /* Mid-Bright Red */
+    --shadow: 0 0% 0%; /* Black shadow for dark mode */
+    /* Sidebar - Adjusted for Dark Red/Black/Gray theme */
+    --sidebar-background: 0 0% 10%; /* Darker background */
+    --sidebar-foreground: 0 0% 95%; /* Near White */
+    --sidebar-primary: 0 70% 60%; /* Brighter Red */
+    --sidebar-primary-foreground: 0 0% 10%; /* Dark text */
+    --sidebar-accent: 0 0% 25%; /* Darker gray accent */
+    --sidebar-accent-foreground: 0 0% 90%; /* Lighter text */
+    --sidebar-border: 0 0% 25%; /* Darker Gray border */
+    --sidebar-ring: 0 70% 60%; /* Brighter Red */
   }
 }
 

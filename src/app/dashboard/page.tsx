@@ -14,7 +14,7 @@ import {
 import {
   Form,
   FormControl,
-  FormDescription,
+  // FormDescription, // Removed this import as it's causing issues
   FormField,
   FormItem,
   FormLabel,
@@ -105,7 +105,7 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [prediction, setPrediction] = React.useState<RevenuePredictionOutput | null>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = React.useState(false);
-  const [isLoadingIndicators, setIsLoadingIndicators] = React.useState(true);
+  const [isLoadingIndicators, setIsLoadingIndicators] = React.useState(true); // Start as true until data is fetched
   const [economicData, setEconomicData] = React.useState<EconomicIndicators | null>(null);
   const [marketData, setMarketData] = React.useState<MarketSignals | null>(null);
   const [chartData, setChartData] = React.useState(defaultHistoricalData);
@@ -130,20 +130,30 @@ export default function DashboardPage() {
     const fetchData = async () => {
       setIsLoadingIndicators(true);
       try {
+        // ** TO USE REAL-TIME DATA: **
+        // 1. Ensure `getEconomicIndicators` and `getMarketSignals` in `src/services/`
+        //    are implemented to fetch data from actual APIs.
+        // 2. Remove the placeholder logic within those service functions.
+        // 3. The code below will then call your real-time data fetching functions.
+
+        console.log("Attempting to fetch initial economic and market data...");
         const [ecoData, mktData] = await Promise.all([
-          getEconomicIndicators(),
-          getMarketSignals(),
+          getEconomicIndicators(), // Calls the function in src/services/economy.ts
+          getMarketSignals(),    // Calls the function in src/services/market.ts
         ]);
+        console.log("Fetched initial data:", { ecoData, mktData });
+
         setEconomicData(ecoData);
         setMarketData(mktData);
+
       } catch (error) {
-        console.error("Failed to fetch initial data:", error);
+        console.error("Failed to fetch initial indicator data:", error);
         toast({
           title: 'Data Fetch Error',
-          description: 'Could not load latest economic or market indicators. Using default assumptions.',
+          description: 'Could not load latest economic or market indicators. Using placeholder display values.',
           variant: 'destructive',
         });
-        // Set defaults if fetch fails to avoid null errors later (optional)
+        // Set placeholders if fetch fails, allowing UI to render
         setEconomicData({ gdpGrowthRate: 1.0, inflationRate: 10.0, unemploymentRate: 5.0, exchangeRate: 310 });
         setMarketData({ demand: 1.0, rawMaterialPrices: 1.0, tradeConditions: 'Unavailable - Using default assumptions.' });
       } finally {
@@ -173,14 +183,18 @@ export default function DashboardPage() {
         return;
       }
 
-      // Refetch indicators just before prediction for latest data (optional, depends on desired freshness)
-      // If keeping data fetched on mount is acceptable, remove this block.
+      // ** OPTIONAL: Refetch indicators just before prediction for maximum freshness **
+      // If keeping the data fetched on mount is acceptable, you can comment out or remove this block.
+      // Ensure your service functions are implemented for real-time data if you uncomment this.
+      /*
       try {
         setIsLoadingIndicators(true);
+        console.log("Refetching indicators before prediction...");
         const [ecoData, mktData] = await Promise.all([
           getEconomicIndicators(),
           getMarketSignals(),
         ]);
+         console.log("Refetched data:", { ecoData, mktData });
         setEconomicData(ecoData);
         setMarketData(mktData);
       } catch (error) {
@@ -190,24 +204,43 @@ export default function DashboardPage() {
           description: 'Could not load latest indicators before prediction. Using previously loaded or default data.',
           variant: 'default', // Less severe than destructive
         });
-         // Ensure we have some data to proceed
+         // Ensure we have *some* data to proceed, even if it's the older fetched data or defaults
          if (!economicData || !marketData) {
+            console.log("Falling back to existing or default indicators for prediction.");
             setEconomicData(economicData ?? { gdpGrowthRate: 1.0, inflationRate: 10.0, unemploymentRate: 5.0, exchangeRate: 310 });
             setMarketData(marketData ?? { demand: 1.0, rawMaterialPrices: 1.0, tradeConditions: 'Unavailable - Using default assumptions.' });
          }
       } finally {
           setIsLoadingIndicators(false);
       }
-      // End of optional refetch block
+      */
+      // ** End of optional refetch block **
 
+      // Ensure economic and market data are available before calling predictRevenue
+      // Use the state values which hold either fetched data or defaults/fallbacks.
+      if (!economicData || !marketData) {
+          toast({
+              title: "Missing Data",
+              description: "Cannot generate prediction without economic and market indicators.",
+              variant: "destructive",
+          });
+          setIsLoadingPrediction(false);
+          return;
+      }
 
+      console.log("Calling predictRevenue with input:", data);
       const result = await predictRevenue({
         historicalRevenueData: data.historicalRevenueData,
         productionCapacity: data.productionCapacity,
         additionalContext: data.additionalContext,
         lifetimeStage: data.lifetimeStage,
         naturalDisasterLikelihood: data.naturalDisasterLikelihood,
+        // Note: The flow internally calls getEconomicIndicators and getMarketSignals again.
+        // If you refetched above, you might consider passing the fetched data directly
+        // to the flow if you modify the flow's signature, or rely on the flow's internal fetch.
+        // Current implementation relies on the flow's internal fetch using the latest from services.
       });
+      console.log("Prediction result:", result);
       setPrediction(result);
 
       // Generate next quarter label dynamically
@@ -246,7 +279,7 @@ export default function DashboardPage() {
       console.error('Prediction error:', error);
       let errorMessage = 'Failed to generate revenue prediction. Please try again.';
       if (error instanceof Error) {
-        errorMessage = error.message.includes('API key')
+        errorMessage = error.message.includes('API key') || error.message.includes('quota')
           ? 'Prediction service configuration error or quota issue. Please contact support.'
           : `Prediction failed: ${error.message.substring(0, 150)}`;
       }
@@ -280,17 +313,21 @@ export default function DashboardPage() {
           <Card className="shadow-md">
              <CardHeader>
                <CardTitle className="flex items-center gap-2"><Globe className="text-primary" />Current Economic & Market Snapshot</CardTitle>
-               <CardDescription>Key indicators influencing the forecast (placeholders).</CardDescription>
+               <CardDescription>
+                 Key indicators influencing the forecast.
+                 {isLoadingIndicators ? " Loading latest data..." : " (Data loaded)"}
+                 {(!isLoadingIndicators && (!economicData || !marketData)) ? " Using placeholders." : ""}
+               </CardDescription>
              </CardHeader>
              <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
                {isLoadingIndicators ? (
                  <>
-                   <Skeleton className="h-8 w-3/4" />
-                   <Skeleton className="h-8 w-2/3" />
-                   <Skeleton className="h-8 w-3/4" />
-                   <Skeleton className="h-8 w-2/3" />
-                   <Skeleton className="h-8 w-3/4" />
-                   <Skeleton className="h-8 w-full col-span-2 md:col-span-1" />
+                   <Skeleton className="h-6 w-3/4" />
+                   <Skeleton className="h-6 w-2/3" />
+                   <Skeleton className="h-6 w-3/4" />
+                   <Skeleton className="h-6 w-2/3" />
+                   <Skeleton className="h-6 w-3/4" />
+                   <Skeleton className="h-6 w-full col-span-2 md:col-span-1" />
                  </>
                ) : (
                  <>
@@ -330,7 +367,9 @@ export default function DashboardPage() {
                     cursor={{ fill: 'hsl(var(--accent)/0.1)' }}
                     formatter={(value: number, name: string, props: any) => {
                       const formattedValue = formatLKR(value);
-                      return [formattedValue, props.payload.predicted ? 'Predicted Revenue' : 'Historical Revenue'];
+                      // Check if the point is predicted based on the custom flag or its position
+                      const isPredicted = props.payload.predicted || name.includes('(Pred.)');
+                      return [formattedValue, isPredicted ? 'Predicted Revenue' : 'Historical Revenue'];
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} verticalAlign="top" align="right" />
@@ -343,7 +382,7 @@ export default function DashboardPage() {
                     dot={{ r: 4, fill: 'hsl(var(--primary))' }}
                     activeDot={{ r: 6, strokeWidth: 1, stroke: 'hsl(var(--primary))' }}
                     name="Historical"
-                    data={chartData.filter(d => !d.predicted)} // Ensure only historical data is used here
+                    data={chartData.filter(d => !d.predicted)} // Filter data explicitly marked as not predicted
                     isAnimationActive={false} // Optional: disable animation if causing issues
                   />
                   {/* Prediction Line - Draw only if prediction exists */}
@@ -358,7 +397,8 @@ export default function DashboardPage() {
                        activeDot={{ r: 6, strokeWidth: 1, stroke: 'hsl(var(--accent))' }}
                        name="Prediction"
                        // Connect prediction line smoothly from the last historical point
-                       data={chartData.slice(-2)} // Data should include last historical and the prediction point
+                       // Ensure data includes the last *actual* historical point and the first predicted point
+                       data={chartData.filter((d, i, arr) => !arr[i-1]?.predicted && !d.predicted || d.predicted )} // Get last historical + all predicted
                        isAnimationActive={false} // Optional: disable animation
                      />
                    )}
@@ -399,7 +439,7 @@ export default function DashboardPage() {
                       <p className="text-sm font-medium text-primary uppercase tracking-wider mb-1">Prediction Confidence</p>
                       <div className="flex items-center justify-center md:justify-end gap-2">
                          <Progress value={prediction.confidenceScore * 100} className={cn("w-24 h-2 bg-muted",
-                            prediction.confidenceScore > 0.7 ? 'bg-green-100 dark:bg-green-900' : prediction.confidenceScore > 0.4 ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-red-100 dark:bg-red-900'
+                            prediction.confidenceScore > 0.7 ? 'progress-high' : prediction.confidenceScore > 0.4 ? 'progress-medium' : 'progress-low' // Use CSS classes for color
                          )} />
                         <Badge variant={prediction.confidenceScore > 0.7 ? "default" : prediction.confidenceScore > 0.4 ? "secondary" : "destructive"} className="text-sm min-w-[60px] text-center justify-center">
                           {(prediction.confidenceScore * 100).toFixed(0)}%
@@ -453,9 +493,13 @@ export default function DashboardPage() {
                             {...field}
                           />
                         </FormControl>
-                        <FormDescription className="text-xs flex items-start gap-1">
-                          <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" /> Format: Array of {"{name: 'Qx YY', revenue: number (LKR)}"}
-                        </FormDescription>
+                        {/* Re-add FormDescription correctly if needed, ensuring it's imported and defined */}
+                         {/* <FormDescription className="text-xs flex items-start gap-1">
+                           <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" /> Format: Array of {"{name: 'Qx YY', revenue: number (LKR)}"}
+                         </FormDescription> */}
+                         <p className="text-xs text-muted-foreground flex items-start gap-1 pt-1">
+                            <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" /> Format: Array of {"{name: 'Qx YY', revenue: number (LKR)}"}
+                         </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -527,9 +571,12 @@ export default function DashboardPage() {
                         <FormControl>
                           <Textarea placeholder="e.g., Major new client, regulatory changes, factory downtime..." {...field} className="min-h-[80px] resize-y" />
                         </FormControl>
-                        <FormDescription className="text-xs">
-                          Relevant factors not captured elsewhere (market shifts, internal issues).
-                        </FormDescription>
+                         {/* <FormDescription className="text-xs">
+                           Relevant factors not captured elsewhere (market shifts, internal issues).
+                         </FormDescription> */}
+                         <p className="text-xs text-muted-foreground pt-1">
+                            Relevant factors not captured elsewhere (market shifts, internal issues).
+                         </p>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -568,5 +615,22 @@ export default function DashboardPage() {
   );
 }
 
-// Note: The custom Progress component definition has been removed to avoid the error.
-// The standard ShadCN Progress component is now used directly.
+// Note: The custom Progress component definition was removed previously to fix an error.
+// Ensure the standard ShadCN Progress component is used with appropriate Tailwind classes or CSS variables for styling.
+// Adding some basic styles for progress bar color based on confidence:
+const progressStyles = `
+  .progress-high .bg-primary { background-color: hsl(120, 60%, 40%); } /* Green */
+  .progress-medium .bg-primary { background-color: hsl(40, 95%, 55%); } /* Yellow-Gold */
+  .progress-low .bg-primary { background-color: hsl(0, 70%, 55%); } /* Soft Red */
+
+  .dark .progress-high .bg-primary { background-color: hsl(120, 50%, 50%); } /* Brighter Green */
+  .dark .progress-medium .bg-primary { background-color: hsl(40, 90%, 60%); } /* Brighter Gold */
+  .dark .progress-low .bg-primary { background-color: hsl(0, 60%, 60%); } /* Brighter Soft Red */
+`;
+
+// Inject styles (use appropriate method in Next.js, e.g., global CSS or styled-jsx)
+if (typeof window !== 'undefined') { // Ensure this runs client-side
+  const styleSheet = document.createElement("style");
+  styleSheet.innerText = progressStyles;
+  document.head.appendChild(styleSheet);
+}
