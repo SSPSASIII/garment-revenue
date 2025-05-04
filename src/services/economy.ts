@@ -40,4 +40,3 @@ export async function getEconomicIndicators(): Promise<EconomicIndicators> {
     exchangeRate: 315.50,     // Example: 1 USD = 315.50 LKR
   };
 }
-```

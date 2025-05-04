@@ -41,4 +41,3 @@ export async function getMarketSignals(): Promise<MarketSignals> {
     tradeConditions: 'Stable access to EU via GSP+, US market shows moderate growth, monitoring potential impact of regional shipping costs.', // Example condition summary
   };
 }
-```
