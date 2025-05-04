@@ -2,7 +2,7 @@
 /**
  * @fileOverview Revenue prediction flow for the Sri Lankan garment industry.
  *
- * - predictRevenue - A function that predicts future revenue trends.
+ * - predictRevenue - A function that predicts future revenue trends in LKR.
  * - RevenuePredictionInput - The input type for the predictRevenue function.
  * - RevenuePredictionOutput - The return type for the predictRevenue function.
  */
@@ -15,25 +15,29 @@ import {getMarketSignals} from '@/services/market';
 const RevenuePredictionInputSchema = z.object({
   historicalRevenueData: z
     .string()
-    .describe('Historical revenue data, as a JSON string.'),
-  productionCapacity: z.number().describe('Current production capacity.'),
+    .describe(
+      'Historical quarterly revenue data in LKR, as a JSON string. Example: [{"name": "Q1 23", "revenue": 1500000}, ...]'
+    ),
+  productionCapacity: z.number().positive().describe('Current production capacity in units per quarter.'),
+  additionalContext: z.string().optional().describe('Optional user-provided context, like new clients, policy changes, or operational issues.'),
 });
 export type RevenuePredictionInput = z.infer<typeof RevenuePredictionInputSchema>;
 
 const RevenuePredictionOutputSchema = z.object({
   predictedRevenue: z
     .number()
-    .describe('The predicted revenue for the next quarter in USD.'),
+    .describe('The predicted revenue for the next quarter in Sri Lankan Rupees (LKR).'),
   trendAnalysis: z
     .string()
     .describe(
-      'An analysis of the revenue trend, including key factors influencing the prediction.'
+      'A detailed analysis of the revenue trend, explaining the key factors (historical data, economic indicators, market signals, context) influencing the prediction and the reasoning behind the forecast.'
     ),
   riskFactors: z
     .string()
     .describe(
-      'Potential risk factors that could impact the predicted revenue, such as economic downturns or changes in trade policies.'
+      'Potential risk factors that could negatively impact the predicted revenue, such as economic downturns, supply chain disruptions, changes in trade policies, or competitor actions.'
     ),
+  confidenceScore: z.number().min(0).max(1).describe('A score between 0 and 1 indicating the confidence level of the prediction (0 = low, 1 = high).')
 });
 export type RevenuePredictionOutput = z.infer<typeof RevenuePredictionOutputSchema>;
 
@@ -49,35 +53,51 @@ const prompt = ai.definePrompt({
     schema: z.object({
       historicalRevenueData: z
         .string()
-        .describe('Historical revenue data, as a JSON string.'),
-      productionCapacity: z.number().describe('Current production capacity.'),
-      gdpGrowthRate: z.number().describe('GDP growth rate.'),
-      inflationRate: z.number().describe('Inflation rate.'),
-      unemploymentRate: z.number().describe('Unemployment rate.'),
-      demand: z.number().describe('Demand for garments in key export markets.'),
-      rawMaterialPrices: z.number().describe('Price trends for raw materials.'),
-      tradeConditions: z.string().describe('Trade agreements and tariffs.'),
+        .describe(
+          'Historical quarterly revenue data in LKR, as a JSON string.'
+        ),
+      productionCapacity: z.number().describe('Current production capacity in units per quarter.'),
+      additionalContext: z.string().optional().describe('Optional user-provided context.'),
+      gdpGrowthRate: z.number().describe('Sri Lankan GDP growth rate (%).'),
+      inflationRate: z.number().describe('Sri Lankan inflation rate (%).'),
+      unemploymentRate: z.number().describe('Sri Lankan unemployment rate (%).'),
+      exchangeRate: z.number().describe('Current USD to LKR exchange rate.'),
+      demand: z.number().describe('Index representing demand for garments in key export markets (e.g., EU, US). Higher value means higher demand.'),
+      rawMaterialPrices: z.number().describe('Index representing price trends for raw materials like cotton and synthetic fabrics. Higher value means higher cost.'),
+      tradeConditions: z.string().describe('Summary of current trade agreements, tariffs, and political stability affecting exports.'),
     }),
   },
   output: {
-    schema: z.object({
-      predictedRevenue: z
-        .number()
-        .describe('The predicted revenue for the next quarter in USD.'),
-      trendAnalysis: z
-        .string()
-        .describe(
-          'An analysis of the revenue trend, including key factors influencing the prediction.'
-        ),
-      riskFactors: z
-        .string()
-        .describe(
-          'Potential risk factors that could impact the predicted revenue, such as economic downturns or changes in trade policies.'
-        ),
-    }),
+    schema: RevenuePredictionOutputSchema, // Use the refined output schema
   },
-  prompt: `You are an expert in predicting revenue for the Sri Lankan garment industry.\n\n  Analyze the following data to predict the revenue for the next quarter:\n  Historical Revenue Data: {{{historicalRevenueData}}}\n  Production Capacity: {{{productionCapacity}}}\n\n  Consider the following economic indicators:\n  GDP Growth Rate: {{{gdpGrowthRate}}}\n  Inflation Rate: {{{inflationRate}}}\n  Unemployment Rate: {{{unemploymentRate}}}\n\n  Also, take into account these market signals:\n  Demand for Garments: {{{demand}}}\n  Raw Material Prices: {{{rawMaterialPrices}}}\n  Trade Conditions: {{{tradeConditions}}}\n\n  Provide a predicted revenue in USD, an analysis of the trend, and potential risk factors.\n  Remember that your output MUST conform to the JSON schema. Do NOT add any additional information to the output other than what is in the schema.
-  `,
+  prompt: `You are an expert financial analyst specializing in predicting revenue for the Sri Lankan garment industry. Your goal is to provide the most accurate forecast possible in Sri Lankan Rupees (LKR) for the next quarter.
+
+Analyze the following company-specific data:
+Historical Revenue Data (LKR): {{{historicalRevenueData}}}
+Production Capacity (Units/Quarter): {{{productionCapacity}}}
+{{#if additionalContext}}
+Additional Context: {{{additionalContext}}}
+{{/if}}
+
+Incorporate these macroeconomic indicators for Sri Lanka:
+GDP Growth Rate: {{{gdpGrowthRate}}}%
+Inflation Rate: {{{inflationRate}}}%
+Unemployment Rate: {{{unemploymentRate}}}%
+USD to LKR Exchange Rate: {{{exchangeRate}}}
+
+Consider these market signals specific to the garment industry:
+Export Market Demand Index: {{{demand}}}
+Raw Material Price Index: {{{rawMaterialPrices}}}
+Trade Conditions: {{{tradeConditions}}}
+
+Based on a thorough analysis of all the provided information, perform the following:
+1.  **Predict Revenue:** Forecast the revenue for the **next quarter** in **Sri Lankan Rupees (LKR)**.
+2.  **Analyze Trend:** Provide a detailed analysis explaining the prediction. Discuss how historical trends, production capacity, economic factors (GDP, inflation, unemployment, exchange rate), market signals (demand, material costs, trade), and any provided context contribute to the forecast. Explain your reasoning clearly. Consider seasonality if evident in historical data.
+3.  **Identify Risks:** Outline potential risk factors that could negatively impact this revenue prediction. Be specific (e.g., "A sudden increase in cotton prices by over 10%", "New import tariffs imposed by the EU", "Domestic political instability affecting production").
+4.  **Estimate Confidence:** Provide a confidence score between 0.0 and 1.0 for your prediction, where 1.0 represents very high confidence. Justify this score briefly within the trend analysis.
+
+Output ONLY the JSON object conforming to the specified output schema. Do not include any introductory text, apologies, or explanations outside the JSON structure. Ensure the predicted revenue is a number representing LKR.
+`,
 });
 
 const predictRevenueFlow = ai.defineFlow<
@@ -89,15 +109,36 @@ const predictRevenueFlow = ai.defineFlow<
     inputSchema: RevenuePredictionInputSchema,
     outputSchema: RevenuePredictionOutputSchema,
   },
-  async input => {
-    const economicIndicators = await getEconomicIndicators();
-    const marketSignals = await getMarketSignals();
+  async (input) => {
+    // Fetch real-time or more granular data if available
+    // For now, using placeholder services
+    const economicIndicators = await getEconomicIndicators(); // Assuming this returns rates and exchange rate
+    const marketSignals = await getMarketSignals(); // Assuming this returns demand, prices, conditions
 
-    const {output} = await prompt({
-      ...input,
-      ...economicIndicators,
-      ...marketSignals,
+    const { output } = await prompt({
+      historicalRevenueData: input.historicalRevenueData,
+      productionCapacity: input.productionCapacity,
+      additionalContext: input.additionalContext, // Pass context to prompt
+      gdpGrowthRate: economicIndicators.gdpGrowthRate,
+      inflationRate: economicIndicators.inflationRate,
+      unemploymentRate: economicIndicators.unemploymentRate,
+      exchangeRate: economicIndicators.exchangeRate, // Add exchange rate
+      demand: marketSignals.demand,
+      rawMaterialPrices: marketSignals.rawMaterialPrices,
+      tradeConditions: marketSignals.tradeConditions,
     });
-    return output!;
+
+    if (!output) {
+        throw new Error("AI failed to generate a prediction.");
+    }
+
+    // Basic validation (optional, as Zod schema handles structure)
+    if (typeof output.predictedRevenue !== 'number' || typeof output.confidenceScore !== 'number') {
+        console.error("Invalid output format from AI:", output);
+        throw new Error("Received invalid prediction format from AI.");
+    }
+
+
+    return output;
   }
 );

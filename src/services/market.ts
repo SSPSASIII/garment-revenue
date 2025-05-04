@@ -1,32 +1,44 @@
 /**
- * Represents market signals for the garment industry.
+ * Represents market signals for the Sri Lankan garment industry.
  */
 export interface MarketSignals {
   /**
-   * Demand for garments in key export markets.
+   * Index representing demand for garments in key export markets (e.g., EU, US).
+   * Higher value (e.g., > 1) indicates stronger than average demand.
+   * Lower value (e.g., < 1) indicates weaker than average demand.
    */
   demand: number;
   /**
-   * Price trends for raw materials.
+   * Index representing price trends for raw materials (cotton, synthetics, etc.).
+   * Higher value (e.g., > 1) indicates higher than average costs.
+   * Lower value (e.g., < 1) indicates lower than average costs.
    */
   rawMaterialPrices: number;
   /**
-   * Trade agreements and tariffs.
+   * Summary of current trade agreements, tariffs, GSP+ status, and political stability
+   * affecting Sri Lankan garment exports.
    */
   tradeConditions: string;
 }
 
 /**
- * Asynchronously retrieves market signals for the garment industry.
+ * Asynchronously retrieves market signals for the Sri Lankan garment industry.
  *
  * @returns A promise that resolves to a MarketSignals object.
+ * In a real application, this would involve analyzing market reports, commodity prices,
+ * and geopolitical news from relevant sources.
  */
 export async function getMarketSignals(): Promise<MarketSignals> {
-  // TODO: Implement this by calling an API.
+  // Placeholder data - Replace with actual data fetching and analysis
+  console.log("Fetching market signals (using placeholder data)...");
+  // Simulate API call delay
+  await new Promise(resolve => setTimeout(resolve, 200));
 
+  // Example placeholder values
   return {
-    demand: 0.8,
-    rawMaterialPrices: 1.2,
-    tradeConditions: 'Favorable',
+    demand: 0.95,             // Example: Slightly below average demand currently
+    rawMaterialPrices: 1.05,  // Example: Raw material costs slightly above average
+    tradeConditions: 'Stable access to EU via GSP+, US market shows moderate growth, monitoring potential impact of regional shipping costs.', // Example condition summary
   };
 }
+```
