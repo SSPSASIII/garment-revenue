@@ -1,3 +1,5 @@
+import fetch from 'node-fetch'; // Use node-fetch for server-side requests
+
 /**
  * Represents key economic indicators for Sri Lanka.
  */
@@ -20,71 +22,86 @@ export interface EconomicIndicators {
   exchangeRate: number;
 }
 
+// Placeholder URLs - Replace with actual API endpoints
+const CBSL_API_ENDPOINT = 'https://api.cbsl.gov.lk/v1/indicators'; // Example
+const WORLD_BANK_API_ENDPOINT = 'https://api.worldbank.org/v2/country/LK/indicator/NY.GDP.MKTP.KD.ZG?format=json'; // Example GDP Growth
+
+// Default values to return in case of API failure
+const defaultIndicators: EconomicIndicators = {
+    gdpGrowthRate: 1.0, // Provide sensible defaults
+    inflationRate: 10.0,
+    unemploymentRate: 5.0,
+    exchangeRate: 310.0,
+};
+
 /**
- * Asynchronously retrieves Sri Lankan economic indicators.
+ * Asynchronously retrieves Sri Lankan economic indicators by fetching data from
+ * relevant APIs like the Central Bank of Sri Lanka and the World Bank.
  *
- * **Note:** This function currently returns placeholder data.
- * TO USE REAL-TIME DATA:
- * 1. Identify and subscribe to reliable APIs (e.g., Central Bank of Sri Lanka API,
- *    Department of Census and Statistics, World Bank API, commercial financial data providers).
- * 2. Replace the placeholder logic below with actual `fetch` calls to those APIs.
- * 3. Securely manage any required API keys (e.g., using environment variables).
- * 4. Parse the API responses and map them to the `EconomicIndicators` interface fields.
+ * **Note:** This function requires API keys to be set in environment variables:
+ * - `CBSL_API_KEY`: For the Central Bank API.
+ * - `WORLD_BANK_API_KEY`: For the World Bank API (if needed, some WB data is public).
  *
- * @returns A promise that resolves to an EconomicIndicators object.
+ * Replace placeholder API endpoints with actual URLs.
+ *
+ * @returns A promise that resolves to an EconomicIndicators object containing the latest data, or default values if APIs fail.
  */
 export async function getEconomicIndicators(): Promise<EconomicIndicators> {
-  console.log("Fetching economic indicators...");
+  console.log("Fetching real-time economic indicators...");
 
-  // --- START Placeholder Data ---
-  // ** REPLACE THIS SECTION WITH YOUR REAL-TIME API CALLS **
-  console.log("Using placeholder economic data.");
-  // Simulate API call delay
-  await new Promise(resolve => setTimeout(resolve, 250));
+  const cbslApiKey = process.env.CBSL_API_KEY;
+  // const worldBankApiKey = process.env.WORLD_BANK_API_KEY; // May not be needed depending on endpoint
 
-  const indicators: EconomicIndicators = {
-    gdpGrowthRate: -0.8,     // Example: Placeholder value
-    inflationRate: 6.5,     // Example: Placeholder value
-    unemploymentRate: 4.9,    // Example: Placeholder value
-    exchangeRate: 305.75,   // Example: Placeholder value
-  };
-  // --- END Placeholder Data ---
+  if (!cbslApiKey) {
+    console.warn("CBSL_API_KEY environment variable not set. Using default economic data.");
+    return defaultIndicators;
+  }
 
-  /*
-  // --- EXAMPLE Real API Call Structure (Conceptual) ---
   try {
-    // const apiKey = process.env.YOUR_ECONOMY_API_KEY; // Get key securely
-    // const response = await fetch(`https://api.exampleeconomicdata.com/v1/srilanka/latest?apiKey=${apiKey}`);
-    // if (!response.ok) {
-    //   throw new Error(`API Error: ${response.statusText}`);
-    // }
-    // const rawData = await response.json();
+    // --- Fetch data from Central Bank API ---
+    // Note: Adjust endpoint and headers based on actual CBSL API documentation
+    const cbslResponse = await fetch(CBSL_API_ENDPOINT, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${cbslApiKey}`, // Adjust auth scheme if needed
+        'Content-Type': 'application/json',
+      },
+      // Add timeout if needed: signal: AbortSignal.timeout(5000) // 5 seconds
+    });
 
-    // // ** PARSE 'rawData' and map to the 'indicators' object **
-    // const indicators: EconomicIndicators = {
-    //   gdpGrowthRate: rawData.gdp_growth_annual_pct,
-    //   inflationRate: rawData.cpi_inflation_annual_pct,
-    //   unemploymentRate: rawData.unemployment_rate_pct,
-    //   exchangeRate: rawData.forex.usd_lkr,
-    // };
+    if (!cbslResponse.ok) {
+      throw new Error(`Central Bank API Error: ${cbslResponse.status} ${cbslResponse.statusText}`);
+    }
+    const cbslData = await cbslResponse.json() as any; // Cast to 'any' or define a specific type
 
-    console.log("Economic Indicators (Real-time):", indicators); // Log real data when implemented
+    // --- Fetch additional data (e.g., GDP from World Bank) ---
+    // Note: World Bank API might not need a key for some indicators. Check their docs.
+    const worldBankResponse = await fetch(WORLD_BANK_API_ENDPOINT);
+    if (!worldBankResponse.ok) {
+        console.warn(`World Bank API Error: ${worldBankResponse.status} ${worldBankResponse.statusText}. GDP data might be missing.`);
+        // Decide whether to throw error or continue with partial data
+    }
+    const worldBankData = worldBankResponse.ok ? await worldBankResponse.json() : null;
+
+    // --- Parse and Combine Data ---
+    // This part heavily depends on the actual structure of the API responses
+    // Example parsing (replace with actual logic):
+    const latestWorldBankGDP = worldBankData?.[1]?.[0]?.value; // Example path to latest value
+
+    const indicators: EconomicIndicators = {
+      // Use CBSL data preferentially, fallback where needed
+      gdpGrowthRate: typeof latestWorldBankGDP === 'number' ? parseFloat(latestWorldBankGDP.toFixed(1)) : (cbslData?.gdp_growth_latest ?? defaultIndicators.gdpGrowthRate),
+      inflationRate: cbslData?.inflation_rate_ccpi ?? defaultIndicators.inflationRate,
+      unemploymentRate: cbslData?.unemployment_rate ?? defaultIndicators.unemploymentRate,
+      exchangeRate: cbslData?.exchange_rate_usd_lkr_avg ?? defaultIndicators.exchangeRate,
+    };
+
+    console.log("Economic Indicators (Fetched):", indicators);
     return indicators;
 
-  } catch (error) {
-    console.error("Failed to fetch real-time economic indicators:", error);
-    // Optionally: Fallback to cached data or defaults
-    console.log("Falling back to placeholder economic data due to error.");
-    return { // Return placeholder or cached data on error
-        gdpGrowthRate: -0.8,
-        inflationRate: 6.5,
-        unemploymentRate: 4.9,
-        exchangeRate: 305.75,
-    };
+  } catch (error: unknown) {
+    console.error("Failed to fetch real-time economic indicators:", error instanceof Error ? error.message : String(error));
+    console.log("Falling back to default economic data due to error.");
+    return defaultIndicators;
   }
-  // --- END EXAMPLE Real API Call Structure ---
-  */
-
-  console.log("Economic Indicators (Placeholders):", indicators);
-  return indicators;
 }

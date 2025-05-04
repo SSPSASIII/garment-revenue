@@ -1,3 +1,5 @@
+import fetch from 'node-fetch'; // Use node-fetch for server-side requests
+
 /**
  * Represents market signals relevant to the Sri Lankan garment industry.
  */
@@ -22,89 +24,142 @@ export interface MarketSignals {
   tradeConditions: string;
 }
 
+// Placeholder URLs - Replace with actual API endpoints
+const CSE_API_ENDPOINT = 'https://api.cse.lk/v2/market-data'; // Example for Colombo Stock Exchange
+const CUSTOMS_API_ENDPOINT = 'https://api.customs.gov.lk/v1/trade-stats'; // Example for Customs Data
+const COMMODITY_API_ENDPOINT = 'https://api.commoditydata.com/prices?symbol=cotton'; // Example for Cotton Prices
+const NEWS_API_ENDPOINT = 'https://api.globaltradenews.com/search?q=sri+lanka+garment+trade'; // Example for News
+
+// Default values to return in case of API failure
+const defaultSignals: MarketSignals = {
+    demand: 1.0,
+    rawMaterialPrices: 1.0,
+    tradeConditions: 'Trade conditions unavailable. Assuming stable environment.',
+};
+
+
 /**
- * Asynchronously retrieves market signals for the Sri Lankan garment industry.
+ * Asynchronously retrieves market signals for the Sri Lankan garment industry by fetching
+ * data from relevant APIs (e.g., Stock Exchange, Customs, Commodity Prices, News).
  *
- * **Note:** This function currently returns placeholder data.
- * TO USE REAL-TIME DATA:
- * 1. Identify data sources: Market intelligence providers (e.g., Bloomberg, Reuters),
- *    commodity exchanges (e.g., ICE for cotton), shipping indices (e.g., Freightos Baltic Index),
- *    geopolitical news aggregators, trade ministry websites.
- * 2. Obtain access (APIs, subscriptions, web scraping if permitted).
- * 3. Replace the placeholder logic below with actual data retrieval and processing.
- *    This might involve multiple API calls and data aggregation.
- * 4. Securely manage any required credentials.
- * 5. Convert raw data into the `MarketSignals` format (potentially involving indexing or summarization).
+ * **Note:** This function requires API keys set in environment variables:
+ * - `CSE_API_KEY`: For Colombo Stock Exchange API.
+ * - `CUSTOMS_API_KEY`: For Customs Department API.
+ * - `COMMODITY_API_KEY`: For commodity price data provider (if needed).
+ * - `NEWS_API_KEY`: For news aggregation service (if needed).
  *
- * @returns A promise that resolves to a MarketSignals object.
+ * Replace placeholder API endpoints with actual URLs and implement data parsing/aggregation.
+ *
+ * @returns A promise that resolves to a MarketSignals object containing the latest data, or default values if APIs fail.
  */
 export async function getMarketSignals(): Promise<MarketSignals> {
-  console.log("Fetching market signals...");
+  console.log("Fetching real-time market signals...");
 
-  // --- START Placeholder Data ---
-  // ** REPLACE THIS SECTION WITH YOUR REAL-TIME DATA RETRIEVAL AND PROCESSING **
-  console.log("Using placeholder market signal data.");
-  // Simulate API call delay / data processing time
-  await new Promise(resolve => setTimeout(resolve, 300));
+  const cseApiKey = process.env.CSE_API_KEY;
+  const customsApiKey = process.env.CUSTOMS_API_KEY;
+  const commodityApiKey = process.env.COMMODITY_API_KEY; // Example, adjust name
+  const newsApiKey = process.env.NEWS_API_KEY; // Example, adjust name
 
-  const signals: MarketSignals = {
-    demand: 0.98,             // Example: Placeholder value
-    rawMaterialPrices: 1.02,  // Example: Placeholder value
-    tradeConditions: 'EU GSP+ status maintained, providing tariff benefits. US demand steady but price sensitive. Red Sea shipping disruptions causing moderate cost increases and delays for European routes.', // Example placeholder summary
-  };
-   // --- END Placeholder Data ---
+  // Check for essential keys (customize based on your required APIs)
+  if (!cseApiKey || !customsApiKey) {
+      console.warn("Required API keys (CSE_API_KEY, CUSTOMS_API_KEY) not set. Using default market signals.");
+      return defaultSignals;
+  }
 
-
-  /*
-  // --- EXAMPLE Real Data Retrieval Structure (Conceptual) ---
   try {
-    // Fetch data from multiple sources
-    // const demandDataPromise = fetch('https://api.demandindexprovider.com/...');
-    // const materialPricePromise = fetch('https://api.commoditydata.com/cotton...');
-    // const shippingDataPromise = fetch('https://api.shippingindex.com/...');
-    // const newsDataPromise = fetch('https://api.tradenews.com/...');
+    // --- Fetch data from multiple sources ---
+    // Example: Fetching CSE Market Data
+    const csePromise = fetch(CSE_API_ENDPOINT, {
+        headers: { 'X-API-Key': cseApiKey } // Adjust auth based on API docs
+    }).then(res => res.ok ? res.json() : Promise.reject(`CSE API Error: ${res.status}`));
 
-    // const [demandRes, materialRes, shippingRes, newsRes] = await Promise.all([
-    //   demandDataPromise, materialPricePromise, shippingDataPromise, newsDataPromise
-    // ]);
+    // Example: Fetching Customs Trade Data
+    const customsPromise = fetch(CUSTOMS_API_ENDPOINT, {
+        headers: { 'Authorization': `Bearer ${customsApiKey}` } // Adjust auth
+    }).then(res => res.ok ? res.json() : Promise.reject(`Customs API Error: ${res.status}`));
 
-    // // Check responses and parse JSON
-    // const demandJson = await demandRes.json(); // etc.
+    // Example: Fetching Commodity Prices (Cotton)
+    const commodityPromise = commodityApiKey ? fetch(COMMODITY_API_ENDPOINT, {
+        headers: { 'X-API-Key': commodityApiKey } // Adjust auth
+    }).then(res => res.ok ? res.json() : Promise.reject(`Commodity API Error: ${res.status}`)) : Promise.resolve(null); // Optional API
 
-    // // ** PROCESS AND AGGREGATE DATA into 'signals' format **
-    // // This will involve calculations to create indices and summarizing text
-    // const calculatedDemandIndex = calculateDemandIndex(demandJson);
-    // const calculatedMaterialIndex = calculateMaterialIndex(materialRes);
-    // const summarizedTradeConditions = summarizeConditions(shippingRes, newsRes); // Assuming JSON data
+     // Example: Fetching Trade News Summary
+     const newsPromise = newsApiKey ? fetch(NEWS_API_ENDPOINT, {
+        headers: { 'X-API-Key': newsApiKey } // Adjust auth
+    }).then(res => res.ok ? res.json() : Promise.reject(`News API Error: ${res.status}`)) : Promise.resolve(null); // Optional API
 
-    // const signals: MarketSignals = {
-    //   demand: calculatedDemandIndex,
-    //   rawMaterialPrices: calculatedMaterialIndex,
-    //   tradeConditions: summarizedTradeConditions,
-    // };
+    // --- Wait for all essential promises ---
+    const [cseData, customsData, commodityData, newsData] = await Promise.all([
+        csePromise.catch(e => { console.error(e); return null; }), // Handle individual errors
+        customsPromise.catch(e => { console.error(e); return null; }),
+        commodityPromise.catch(e => { console.error(e); return null; }),
+        newsPromise.catch(e => { console.error(e); return null; }),
+    ]);
 
-    console.log("Market Signals (Real-time):", signals); // Log real data
+    // --- Process and aggregate data ---
+    // This is highly dependent on the API response structures.
+    // You'll need to implement functions to calculate indices and summarize text.
+    const calculatedDemandIndex = calculateDemandIndex(cseData, customsData); // Implement this
+    const calculatedMaterialIndex = calculateMaterialIndex(commodityData); // Implement this
+    const summarizedTradeConditions = summarizeTradeConditions(newsData, customsData); // Implement this
+
+    const signals: MarketSignals = {
+      demand: calculatedDemandIndex ?? defaultSignals.demand,
+      rawMaterialPrices: calculatedMaterialIndex ?? defaultSignals.rawMaterialPrices,
+      tradeConditions: summarizedTradeConditions ?? defaultSignals.tradeConditions,
+    };
+
+    console.log("Market Signals (Fetched):", signals);
     return signals;
 
-  } catch (error) {
-    console.error("Failed to fetch real-time market signals:", error);
-    // Fallback to placeholder or cached data
-    console.log("Falling back to placeholder market signal data due to error.");
-    return { // Return placeholder or cached data on error
-        demand: 0.98,
-        rawMaterialPrices: 1.02,
-        tradeConditions: 'EU GSP+ status maintained. Moderate shipping cost increases persist.',
-    };
+  } catch (error: unknown) {
+    // Catch errors not handled by individual promises (e.g., Promise.all failure)
+    console.error("Failed to fetch one or more real-time market signals:", error instanceof Error ? error.message : String(error));
+    console.log("Falling back to default market signals due to error.");
+    return defaultSignals;
   }
-  // --- END EXAMPLE Real Data Retrieval Structure ---
-  */
-
-
-  console.log("Market Signals (Placeholders):", signals);
-  return signals;
 }
 
-// Placeholder functions for conceptual example
-// function calculateDemandIndex(data: any): number { return 0.98; }
-// function calculateMaterialIndex(data: any): number { return 1.02; }
-// function summarizeConditions(shippingData: any, newsData: any): string { return 'Placeholder summary'; }
+
+// --- Placeholder Helper Functions (Implement these based on API data) ---
+
+function calculateDemandIndex(cseData: any, customsData: any): number | null {
+    // Logic to analyze stock market trends, sector performance, and export volumes
+    // Example: Combine CSE apparel sector index changes with recent export growth rates
+    console.log("Placeholder: Calculating demand index...");
+    if (!cseData || !customsData) return null;
+    // Replace with actual calculation
+    const baseDemand = 1.0;
+    const cseFactor = cseData?.sectors?.apparel?.change_pct ?? 0; // Example path
+    const exportFactor = customsData?.latest_export_growth?.garments_pct ?? 0; // Example path
+    // Simple example weighting
+    return parseFloat((baseDemand * (1 + cseFactor * 0.002 + exportFactor * 0.005)).toFixed(2));
+}
+
+function calculateMaterialIndex(commodityData: any): number | null {
+    // Logic to get latest cotton price and potentially other materials, compare to baseline
+    console.log("Placeholder: Calculating material index...");
+    if (!commodityData?.price) return null;
+    const baselineCottonPrice = 150; // Example baseline
+    const currentPrice = commodityData.price;
+    return parseFloat((currentPrice / baselineCottonPrice).toFixed(2));
+}
+
+function summarizeTradeConditions(newsData: any, customsData: any): string | null {
+    // Logic to summarize key points from recent trade news and customs reports
+    console.log("Placeholder: Summarizing trade conditions...");
+    let summary = "";
+    if(customsData?.gsp_status === 'active') {
+        summary += "EU GSP+ status maintained. ";
+    } else {
+        summary += "EU GSP+ status uncertain/inactive. ";
+    }
+    // Add snippets from newsData headlines or summaries
+    const topHeadline = newsData?.articles?.[0]?.title;
+    if(topHeadline) {
+        summary += `Recent News: ${topHeadline.substring(0, 80)}...`;
+    }
+
+    if (!summary) return null;
+    return summary.trim() || defaultSignals.tradeConditions; // Fallback if summary is empty
+}

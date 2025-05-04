@@ -14,7 +14,6 @@ import {
 import {
   Form,
   FormControl,
-  // FormDescription, // Removed this import as it's causing issues
   FormField,
   FormItem,
   FormLabel,
@@ -105,7 +104,8 @@ export default function DashboardPage() {
   const { toast } = useToast();
   const [prediction, setPrediction] = React.useState<RevenuePredictionOutput | null>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = React.useState(false);
-  const [isLoadingIndicators, setIsLoadingIndicators] = React.useState(true); // Start as true until data is fetched
+  const [isLoadingIndicators, setIsLoadingIndicators] = React.useState(true);
+  const [hasFetchError, setHasFetchError] = React.useState(false); // Track if fetching failed
   const [economicData, setEconomicData] = React.useState<EconomicIndicators | null>(null);
   const [marketData, setMarketData] = React.useState<MarketSignals | null>(null);
   const [chartData, setChartData] = React.useState(defaultHistoricalData);
@@ -122,24 +122,18 @@ export default function DashboardPage() {
     },
   });
 
+  // Fetch initial data effect
   React.useEffect(() => {
-    // Ensure this runs only on the client after hydration
     setCurrentYear(new Date().getFullYear().toString());
 
-    // Fetch economic and market data on component mount
     const fetchData = async () => {
       setIsLoadingIndicators(true);
+      setHasFetchError(false);
       try {
-        // ** TO USE REAL-TIME DATA: **
-        // 1. Ensure `getEconomicIndicators` and `getMarketSignals` in `src/services/`
-        //    are implemented to fetch data from actual APIs.
-        // 2. Remove the placeholder logic within those service functions.
-        // 3. The code below will then call your real-time data fetching functions.
-
-        console.log("Attempting to fetch initial economic and market data...");
+        console.log("Attempting to fetch initial real-time economic and market data...");
         const [ecoData, mktData] = await Promise.all([
-          getEconomicIndicators(), // Calls the function in src/services/economy.ts
-          getMarketSignals(),    // Calls the function in src/services/market.ts
+          getEconomicIndicators(), // Calls the updated function in src/services/economy.ts
+          getMarketSignals(),    // Calls the updated function in src/services/market.ts
         ]);
         console.log("Fetched initial data:", { ecoData, mktData });
 
@@ -147,13 +141,14 @@ export default function DashboardPage() {
         setMarketData(mktData);
 
       } catch (error) {
-        console.error("Failed to fetch initial indicator data:", error);
+        console.error("Failed to fetch initial real-time indicator data:", error);
+        setHasFetchError(true);
         toast({
           title: 'Data Fetch Error',
-          description: 'Could not load latest economic or market indicators. Using placeholder display values.',
+          description: 'Could not load latest economic or market indicators. Using default display values. Check API keys and service status.',
           variant: 'destructive',
         });
-        // Set placeholders if fetch fails, allowing UI to render
+        // Set defaults if fetch fails, allowing UI to render
         setEconomicData({ gdpGrowthRate: 1.0, inflationRate: 10.0, unemploymentRate: 5.0, exchangeRate: 310 });
         setMarketData({ demand: 1.0, rawMaterialPrices: 1.0, tradeConditions: 'Unavailable - Using default assumptions.' });
       } finally {
@@ -161,11 +156,25 @@ export default function DashboardPage() {
       }
     };
     fetchData();
-  }, [toast]); // Add toast to dependency array
+  }, [toast]);
 
   const onSubmit = async (data: FormValues) => {
     setIsLoadingPrediction(true);
     setPrediction(null); // Clear previous prediction
+
+    // Ensure economic and market data are loaded (or defaulted after error) before proceeding
+    if (isLoadingIndicators) {
+        toast({ title: "Please wait", description: "Economic data is still loading.", variant: "default" });
+        setIsLoadingPrediction(false);
+        return;
+    }
+    if (!economicData || !marketData) {
+        toast({ title: "Missing Data", description: "Cannot predict without economic indicators. Fetching may have failed.", variant: "destructive"});
+        setIsLoadingPrediction(false);
+        return;
+    }
+
+
     try {
       let parsedHistoricalData;
       try {
@@ -183,62 +192,16 @@ export default function DashboardPage() {
         return;
       }
 
-      // ** OPTIONAL: Refetch indicators just before prediction for maximum freshness **
-      // If keeping the data fetched on mount is acceptable, you can comment out or remove this block.
-      // Ensure your service functions are implemented for real-time data if you uncomment this.
-      /*
-      try {
-        setIsLoadingIndicators(true);
-        console.log("Refetching indicators before prediction...");
-        const [ecoData, mktData] = await Promise.all([
-          getEconomicIndicators(),
-          getMarketSignals(),
-        ]);
-         console.log("Refetched data:", { ecoData, mktData });
-        setEconomicData(ecoData);
-        setMarketData(mktData);
-      } catch (error) {
-         console.error("Failed to fetch real-time data before prediction:", error);
-         toast({
-          title: 'Data Fetch Warning',
-          description: 'Could not load latest indicators before prediction. Using previously loaded or default data.',
-          variant: 'default', // Less severe than destructive
-        });
-         // Ensure we have *some* data to proceed, even if it's the older fetched data or defaults
-         if (!economicData || !marketData) {
-            console.log("Falling back to existing or default indicators for prediction.");
-            setEconomicData(economicData ?? { gdpGrowthRate: 1.0, inflationRate: 10.0, unemploymentRate: 5.0, exchangeRate: 310 });
-            setMarketData(marketData ?? { demand: 1.0, rawMaterialPrices: 1.0, tradeConditions: 'Unavailable - Using default assumptions.' });
-         }
-      } finally {
-          setIsLoadingIndicators(false);
-      }
-      */
-      // ** End of optional refetch block **
-
-      // Ensure economic and market data are available before calling predictRevenue
-      // Use the state values which hold either fetched data or defaults/fallbacks.
-      if (!economicData || !marketData) {
-          toast({
-              title: "Missing Data",
-              description: "Cannot generate prediction without economic and market indicators.",
-              variant: "destructive",
-          });
-          setIsLoadingPrediction(false);
-          return;
-      }
-
-      console.log("Calling predictRevenue with input:", data);
+      // The AI flow internally calls getEconomicIndicators and getMarketSignals again.
+      // This ensures it uses the *latest* available data when the prediction is triggered.
+      // We rely on the service functions to handle fetching/caching/errors.
+      console.log("Calling predictRevenue flow with input:", data);
       const result = await predictRevenue({
         historicalRevenueData: data.historicalRevenueData,
         productionCapacity: data.productionCapacity,
         additionalContext: data.additionalContext,
         lifetimeStage: data.lifetimeStage,
         naturalDisasterLikelihood: data.naturalDisasterLikelihood,
-        // Note: The flow internally calls getEconomicIndicators and getMarketSignals again.
-        // If you refetched above, you might consider passing the fetched data directly
-        // to the flow if you modify the flow's signature, or rely on the flow's internal fetch.
-        // Current implementation relies on the flow's internal fetch using the latest from services.
       });
       console.log("Prediction result:", result);
       setPrediction(result);
@@ -251,7 +214,6 @@ export default function DashboardPage() {
         if (match) {
           let quarter = parseInt(match[1]);
           let year = parseInt(match[2]);
-          // Simple year handling: assumes YY format < 50 is 20xx, >= 50 is 19xx
           let fullYear = year < 50 ? 2000 + year : 1900 + year;
           if (quarter === 4) {
             quarter = 1;
@@ -259,7 +221,6 @@ export default function DashboardPage() {
           } else {
             quarter += 1;
           }
-          // Format year back to YY for consistency in the chart label
           const displayYear = fullYear.toString().slice(-2);
           nextQuarterLabel = `Q${quarter} ${displayYear} (Pred.)`;
         }
@@ -300,7 +261,6 @@ export default function DashboardPage() {
           <h1 className="text-xl font-semibold text-primary flex items-center gap-2">
             <TrendingUp className="w-5 h-5" /> LankaForecaster Dashboard
           </h1>
-          {/* Add User Profile/Logout Button here if needed */}
           <Button variant="outline" size="sm">Logout</Button>
         </div>
       </header>
@@ -315,8 +275,7 @@ export default function DashboardPage() {
                <CardTitle className="flex items-center gap-2"><Globe className="text-primary" />Current Economic & Market Snapshot</CardTitle>
                <CardDescription>
                  Key indicators influencing the forecast.
-                 {isLoadingIndicators ? " Loading latest data..." : " (Data loaded)"}
-                 {(!isLoadingIndicators && (!economicData || !marketData)) ? " Using placeholders." : ""}
+                 {isLoadingIndicators ? " Loading latest data..." : hasFetchError ? " Using defaults due to fetch error." : " (Data loaded)"}
                </CardDescription>
              </CardHeader>
              <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
@@ -334,8 +293,8 @@ export default function DashboardPage() {
                    <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-muted-foreground" /> GDP Growth: <span className="font-medium">{economicData?.gdpGrowthRate ?? 'N/A'}%</span></div>
                    <div className="flex items-center gap-2"><Percent className="w-4 h-4 text-muted-foreground" /> Inflation: <span className="font-medium">{economicData?.inflationRate ?? 'N/A'}%</span></div>
                    <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-muted-foreground" /> USD/LKR: <span className="font-medium">{economicData?.exchangeRate ?? 'N/A'}</span></div>
-                   <div className="flex items-center gap-2"><Anchor className="w-4 h-4 text-muted-foreground" /> Market Demand: <span className="font-medium">{marketData?.demand ?? 'N/A'}</span></div>
-                   <div className="flex items-center gap-2"><Factory className="w-4 h-4 text-muted-foreground" /> Material Costs: <span className="font-medium">{marketData?.rawMaterialPrices ?? 'N/A'}</span></div>
+                   <div className="flex items-center gap-2"><Anchor className="w-4 h-4 text-muted-foreground" /> Market Demand: <span className="font-medium">{marketData?.demand?.toFixed(2) ?? 'N/A'}</span></div>
+                   <div className="flex items-center gap-2"><Factory className="w-4 h-4 text-muted-foreground" /> Material Costs: <span className="font-medium">{marketData?.rawMaterialPrices?.toFixed(2) ?? 'N/A'}</span></div>
                    <p className="text-xs text-muted-foreground col-span-2 md:col-span-3 pt-2 flex items-start gap-1"><Info className="w-3 h-3 mt-0.5 shrink-0"/>Trade Conditions: {marketData?.tradeConditions ?? 'N/A'}</p>
                  </>
                )}
@@ -350,15 +309,15 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <ResponsiveContainer width="100%" height={350}>
-                <LineChart data={chartData} margin={{ top: 5, right: 20, left: 40, bottom: 5 }}> {/* Adjusted margins */}
+                <LineChart data={chartData} margin={{ top: 5, right: 20, left: 40, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} tick={{ dy: 5 }} interval="preserveStartEnd"/>
                   <YAxis
                     stroke="hsl(var(--muted-foreground))"
                     fontSize={12}
                     tickFormatter={formatLKRShort}
-                    width={80} // Keep increased width for LKR values
-                    domain={['auto', 'auto']} // Let recharts determine domain or set manually e.g., [0, 'dataMax + 50000000']
+                    width={80}
+                    domain={['auto', 'auto']}
                   />
                   <Tooltip
                     contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', boxShadow: 'hsl(var(--shadow))' }}
@@ -367,13 +326,11 @@ export default function DashboardPage() {
                     cursor={{ fill: 'hsl(var(--accent)/0.1)' }}
                     formatter={(value: number, name: string, props: any) => {
                       const formattedValue = formatLKR(value);
-                      // Check if the point is predicted based on the custom flag or its position
                       const isPredicted = props.payload.predicted || name.includes('(Pred.)');
                       return [formattedValue, isPredicted ? 'Predicted Revenue' : 'Historical Revenue'];
                     }}
                   />
                   <Legend wrapperStyle={{ fontSize: '12px', paddingTop: '10px' }} verticalAlign="top" align="right" />
-                  {/* Historical Line */}
                   <Line
                     type="monotone"
                     dataKey="revenue"
@@ -382,11 +339,10 @@ export default function DashboardPage() {
                     dot={{ r: 4, fill: 'hsl(var(--primary))' }}
                     activeDot={{ r: 6, strokeWidth: 1, stroke: 'hsl(var(--primary))' }}
                     name="Historical"
-                    data={chartData.filter(d => !d.predicted)} // Filter data explicitly marked as not predicted
-                    isAnimationActive={false} // Optional: disable animation if causing issues
+                    data={chartData.filter(d => !d.predicted)}
+                    isAnimationActive={false}
                   />
-                  {/* Prediction Line - Draw only if prediction exists */}
-                  {prediction && chartData.some(d => d.predicted) && ( // Check if prediction exists and is in chartData
+                  {prediction && chartData.some(d => d.predicted) && (
                      <Line
                        type="monotone"
                        dataKey="revenue"
@@ -396,10 +352,8 @@ export default function DashboardPage() {
                        dot={{ r: 4, fill: 'hsl(var(--accent))' }}
                        activeDot={{ r: 6, strokeWidth: 1, stroke: 'hsl(var(--accent))' }}
                        name="Prediction"
-                       // Connect prediction line smoothly from the last historical point
-                       // Ensure data includes the last *actual* historical point and the first predicted point
-                       data={chartData.filter((d, i, arr) => !arr[i-1]?.predicted && !d.predicted || d.predicted )} // Get last historical + all predicted
-                       isAnimationActive={false} // Optional: disable animation
+                       data={chartData.filter((d, i, arr) => !arr[i-1]?.predicted && !d.predicted || d.predicted )}
+                       isAnimationActive={false}
                      />
                    )}
                 </LineChart>
@@ -439,7 +393,7 @@ export default function DashboardPage() {
                       <p className="text-sm font-medium text-primary uppercase tracking-wider mb-1">Prediction Confidence</p>
                       <div className="flex items-center justify-center md:justify-end gap-2">
                          <Progress value={prediction.confidenceScore * 100} className={cn("w-24 h-2 bg-muted",
-                            prediction.confidenceScore > 0.7 ? 'progress-high' : prediction.confidenceScore > 0.4 ? 'progress-medium' : 'progress-low' // Use CSS classes for color
+                            prediction.confidenceScore > 0.7 ? 'progress-high' : prediction.confidenceScore > 0.4 ? 'progress-medium' : 'progress-low'
                          )} />
                         <Badge variant={prediction.confidenceScore > 0.7 ? "default" : prediction.confidenceScore > 0.4 ? "secondary" : "destructive"} className="text-sm min-w-[60px] text-center justify-center">
                           {(prediction.confidenceScore * 100).toFixed(0)}%
@@ -472,7 +426,7 @@ export default function DashboardPage() {
 
         {/* Right Column: Manual Input */}
         <div className="lg:col-span-1">
-          <Card className="shadow-md sticky top-24"> {/* Make input card sticky */}
+          <Card className="shadow-md sticky top-24">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Factory className="text-primary"/>Prediction Input</CardTitle>
               <CardDescription>Provide company data to power the prediction.</CardDescription>
@@ -489,14 +443,10 @@ export default function DashboardPage() {
                         <FormControl>
                           <Textarea
                             placeholder='[{"name": "Q1 23", "revenue": 160000000}, ...]'
-                            className="min-h-[120px] font-mono text-xs resize-y" // Allow vertical resize
+                            className="min-h-[120px] font-mono text-xs resize-y"
                             {...field}
                           />
                         </FormControl>
-                        {/* Re-add FormDescription correctly if needed, ensuring it's imported and defined */}
-                         {/* <FormDescription className="text-xs flex items-start gap-1">
-                           <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" /> Format: Array of {"{name: 'Qx YY', revenue: number (LKR)}"}
-                         </FormDescription> */}
                          <p className="text-xs text-muted-foreground flex items-start gap-1 pt-1">
                             <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" /> Format: Array of {"{name: 'Qx YY', revenue: number (LKR)}"}
                          </p>
@@ -571,9 +521,6 @@ export default function DashboardPage() {
                         <FormControl>
                           <Textarea placeholder="e.g., Major new client, regulatory changes, factory downtime..." {...field} className="min-h-[80px] resize-y" />
                         </FormControl>
-                         {/* <FormDescription className="text-xs">
-                           Relevant factors not captured elsewhere (market shifts, internal issues).
-                         </FormDescription> */}
                          <p className="text-xs text-muted-foreground pt-1">
                             Relevant factors not captured elsewhere (market shifts, internal issues).
                          </p>
@@ -615,9 +562,7 @@ export default function DashboardPage() {
   );
 }
 
-// Note: The custom Progress component definition was removed previously to fix an error.
-// Ensure the standard ShadCN Progress component is used with appropriate Tailwind classes or CSS variables for styling.
-// Adding some basic styles for progress bar color based on confidence:
+// Inject styles for progress bar colors (runs client-side)
 const progressStyles = `
   .progress-high .bg-primary { background-color: hsl(120, 60%, 40%); } /* Green */
   .progress-medium .bg-primary { background-color: hsl(40, 95%, 55%); } /* Yellow-Gold */
@@ -628,9 +573,12 @@ const progressStyles = `
   .dark .progress-low .bg-primary { background-color: hsl(0, 60%, 60%); } /* Brighter Soft Red */
 `;
 
-// Inject styles (use appropriate method in Next.js, e.g., global CSS or styled-jsx)
-if (typeof window !== 'undefined') { // Ensure this runs client-side
-  const styleSheet = document.createElement("style");
-  styleSheet.innerText = progressStyles;
-  document.head.appendChild(styleSheet);
+if (typeof window !== 'undefined') {
+  const styleId = 'progress-color-styles';
+  if (!document.getElementById(styleId)) {
+      const styleSheet = document.createElement("style");
+      styleSheet.id = styleId;
+      styleSheet.innerText = progressStyles;
+      document.head.appendChild(styleSheet);
+  }
 }
