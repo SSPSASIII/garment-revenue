@@ -40,6 +40,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
+import { cn } from "@/lib/utils";
 
 
 // Default historical data (can be overridden by user input)
@@ -397,9 +398,9 @@ export default function DashboardPage() {
                     <div className="text-center md:text-right">
                       <p className="text-sm font-medium text-primary uppercase tracking-wider mb-1">Prediction Confidence</p>
                       <div className="flex items-center justify-center md:justify-end gap-2">
-                         <Progress value={prediction.confidenceScore * 100} className="w-24 h-2 bg-muted" indicatorClassName={
-                              prediction.confidenceScore > 0.7 ? 'bg-green-500' : prediction.confidenceScore > 0.4 ? 'bg-yellow-500' : 'bg-red-500'
-                         }/>
+                         <Progress value={prediction.confidenceScore * 100} className={cn("w-24 h-2 bg-muted",
+                            prediction.confidenceScore > 0.7 ? 'bg-green-100 dark:bg-green-900' : prediction.confidenceScore > 0.4 ? 'bg-yellow-100 dark:bg-yellow-900' : 'bg-red-100 dark:bg-red-900'
+                         )} />
                         <Badge variant={prediction.confidenceScore > 0.7 ? "default" : prediction.confidenceScore > 0.4 ? "secondary" : "destructive"} className="text-sm min-w-[60px] text-center justify-center">
                           {(prediction.confidenceScore * 100).toFixed(0)}%
                         </Badge>
@@ -567,43 +568,5 @@ export default function DashboardPage() {
   );
 }
 
-// Custom Progress component to allow styling the indicator
-const ProgressIndicator = React.forwardRef<
-  HTMLDivElement,
-   React.HTMLAttributes<HTMLDivElement> & { value: number | null | undefined }
->(({ className, value, ...props }, ref) => (
-   <div
-     ref={ref}
-     className={cn("h-full w-full flex-1 bg-primary transition-all", className)}
-     style={{ transform: `translateX(-${100 - (value || 0)}%)` }}
-     {...props}
-   />
-));
-ProgressIndicator.displayName = "ProgressIndicator";
-
-// Extend the Progress component props to accept indicatorClassName
-interface CustomProgressProps extends React.ComponentPropsWithoutRef<typeof ProgressPrimitive.Root> {
-  indicatorClassName?: string;
-}
-
-const ProgressPrimitive = React.forwardRef<
-  React.ElementRef<typeof ProgressPrimitive.Root>,
-  CustomProgressProps
->(({ className, value, indicatorClassName, ...props }, ref) => (
-  <ProgressPrimitive.Root
-    ref={ref}
-    className={cn(
-      "relative h-4 w-full overflow-hidden rounded-full bg-secondary", // Base background
-      className
-    )}
-    {...props}
-  >
-    <ProgressIndicator
-      className={cn("bg-primary", indicatorClassName)} // Default indicator, allow override
-      value={value}
-    />
-  </ProgressPrimitive.Root>
-));
-ProgressPrimitive.displayName = ProgressPrimitive.Root.displayName;
-
-// --- End of Custom Progress ---
+// Note: The custom Progress component definition has been removed to avoid the error.
+// The standard ShadCN Progress component is now used directly.
