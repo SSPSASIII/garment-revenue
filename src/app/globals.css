@@ -33,6 +33,7 @@ body {
     --chart-4: 43 74% 66%;
     --chart-5: 27 87% 67%;
     --radius: 0.5rem;
+    --shadow: 220 3% 15%; /* Shadow color */
     --sidebar-background: 0 0% 98%; /* Slightly off-white for sidebar */
     --sidebar-foreground: 0 0% 3.9%;
     --sidebar-primary: 180 100% 25.1%; /* Teal */
@@ -68,6 +69,7 @@ body {
     --chart-3: 30 80% 55%;
     --chart-4: 280 65% 60%;
     --chart-5: 340 75% 55%;
+    --shadow: 220 40% 2%; /* Shadow color for dark mode */
     --sidebar-background: 0 0% 5%; /* Dark background for sidebar */
     --sidebar-foreground: 0 0% 98%; /* White */
     --sidebar-primary: 180 100% 35.1%; /* Slightly lighter Teal */
