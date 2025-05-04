@@ -31,6 +31,9 @@ export default function LandingPage() {
             <p className="text-lg text-muted-foreground mb-12 max-w-3xl mx-auto">
               LankaForecaster provides cutting-edge revenue predictions for Sri Lanka's garment industry.
               Leverage historical data, market trends, and economic indicators to make strategic decisions and drive sustainable growth.
+              <br />
+              Our AI models are trained on vast datasets and refined by expert insights.
+              
             </p>
             <Link href="/signup" passHref>
               <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
