@@ -1,4 +1,3 @@
-// Main Dashboard Page - src/app/dashboard/page.tsx
 'use client';
 
 import * as React from 'react';
@@ -31,6 +30,13 @@ import { Loader2, TrendingUp, AlertTriangle, Info, Activity, AlertCircle, Percen
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress"; // Import Progress component
 import { Badge } from "@/components/ui/badge"; // Import Badge component
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from '@/components/ui/select';
 
 
 // Dummy historical data for chart example (Updated to LKR)
@@ -79,6 +85,12 @@ const formSchema = z.object({
     message: 'Production capacity must be a positive number.',
   }),
   additionalContext: z.string().optional(), // Renamed from economicNotes
+  lifetimeStage: z.enum(['startup', 'growth', 'maturity', 'decline'], {
+    message: 'Please select the company lifecycle stage.',
+  }),
+  naturalDisasterLikelihood: z.enum(['low', 'medium', 'high'], {
+    message: 'Please select the likelihood of a natural disaster.',
+  }),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -96,6 +108,8 @@ export default function DashboardPage() {
       historicalRevenueData: JSON.stringify(historicalData.slice(-4), null, 2),
       productionCapacity: 50000, // Example capacity
       additionalContext: '',
+      lifetimeStage: 'growth',
+      naturalDisasterLikelihood: 'low',
     },
   });
 
@@ -128,6 +142,8 @@ export default function DashboardPage() {
         historicalRevenueData: data.historicalRevenueData,
         productionCapacity: data.productionCapacity,
         additionalContext: data.additionalContext, // Pass additional context
+        lifetimeStage: data.lifetimeStage,
+        naturalDisasterLikelihood: data.naturalDisasterLikelihood,
       });
       setPrediction(result);
 
@@ -367,6 +383,51 @@ export default function DashboardPage() {
                          <FormDescription className="text-xs">
                            Provide relevant factors not captured above (market shifts, internal issues, etc.).
                          </FormDescription>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="lifetimeStage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Company Lifecycle Stage</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select stage" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="startup">Startup</SelectItem>
+                            <SelectItem value="growth">Growth</SelectItem>
+                            <SelectItem value="maturity">Maturity</SelectItem>
+                            <SelectItem value="decline">Decline</SelectItem>
+                          </SelectContent>
+                        </Select>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="naturalDisasterLikelihood"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Natural Disaster Likelihood</FormLabel>
+                        <Select onValueChange={field.onChange} defaultValue={field.value}>
+                          <FormControl>
+                            <SelectTrigger>
+                              <SelectValue placeholder="Select likelihood" />
+                            </SelectTrigger>
+                          </FormControl>
+                          <SelectContent>
+                            <SelectItem value="low">Low</SelectItem>
+                            <SelectItem value="medium">Medium</SelectItem>
+                            <SelectItem value="high">High</SelectItem>
+                          </SelectContent>
+                        </Select>
                         <FormMessage />
                       </FormItem>
                     )}

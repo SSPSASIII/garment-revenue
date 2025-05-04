@@ -1,8 +1,8 @@
 'use server';
 /**
- * @fileOverview Revenue prediction flow for the Sri Lankan garment industry.
+ * @fileOverview Revenue prediction flow for the Sri Lankan garment industry, enhanced with lifetime steps and natural disaster considerations.
  *
- * - predictRevenue - A function that predicts future revenue trends in LKR.
+ * - predictRevenue - A function that predicts future revenue trends in LKR, considering lifetime stages and potential natural disasters.
  * - RevenuePredictionInput - The input type for the predictRevenue function.
  * - RevenuePredictionOutput - The return type for the predictRevenue function.
  */
@@ -20,6 +20,8 @@ const RevenuePredictionInputSchema = z.object({
     ),
   productionCapacity: z.number().positive().describe('Current production capacity in units per quarter.'),
   additionalContext: z.string().optional().describe('Optional user-provided context, like new clients, policy changes, or operational issues.'),
+  lifetimeStage: z.enum(['startup', 'growth', 'maturity', 'decline']).describe('The current stage of the company lifecycle.'),
+  naturalDisasterLikelihood: z.enum(['low', 'medium', 'high']).describe('The likelihood of a natural disaster impacting operations in the next quarter.')
 });
 export type RevenuePredictionInput = z.infer<typeof RevenuePredictionInputSchema>;
 
@@ -30,12 +32,12 @@ const RevenuePredictionOutputSchema = z.object({
   trendAnalysis: z
     .string()
     .describe(
-      'A detailed analysis of the revenue trend, explaining the key factors (historical data, economic indicators, market signals, context) influencing the prediction and the reasoning behind the forecast.'
+      'A detailed analysis of the revenue trend, explaining the key factors (historical data, economic indicators, market signals, context, lifetime stage, and natural disaster likelihood) influencing the prediction and the reasoning behind the forecast.'
     ),
   riskFactors: z
     .string()
     .describe(
-      'Potential risk factors that could negatively impact the predicted revenue, such as economic downturns, supply chain disruptions, changes in trade policies, or competitor actions.'
+      'Potential risk factors that could negatively impact the predicted revenue, such as economic downturns, supply chain disruptions, changes in trade policies, competitor actions, stage of lifecycle, or natural disasters.'
     ),
   confidenceScore: z.number().min(0).max(1).describe('A score between 0 and 1 indicating the confidence level of the prediction (0 = low, 1 = high).')
 });
@@ -65,6 +67,8 @@ const prompt = ai.definePrompt({
       demand: z.number().describe('Index representing demand for garments in key export markets (e.g., EU, US). Higher value means higher demand.'),
       rawMaterialPrices: z.number().describe('Index representing price trends for raw materials like cotton and synthetic fabrics. Higher value means higher cost.'),
       tradeConditions: z.string().describe('Summary of current trade agreements, tariffs, and political stability affecting exports.'),
+      lifetimeStage: z.string().describe('The current stage of the company lifecycle (startup, growth, maturity, decline).'),
+      naturalDisasterLikelihood: z.string().describe('The likelihood of a natural disaster impacting operations in the next quarter (low, medium, high).'),
     }),
   },
   output: {
@@ -75,6 +79,7 @@ const prompt = ai.definePrompt({
 Analyze the following company-specific data:
 Historical Revenue Data (LKR): {{{historicalRevenueData}}}
 Production Capacity (Units/Quarter): {{{productionCapacity}}}
+Company Lifecycle Stage: {{{lifetimeStage}}}
 {{#if additionalContext}}
 Additional Context: {{{additionalContext}}}
 {{/if}}
@@ -90,10 +95,13 @@ Export Market Demand Index: {{{demand}}}
 Raw Material Price Index: {{{rawMaterialPrices}}}
 Trade Conditions: {{{tradeConditions}}}
 
+Assess the potential impact of natural disasters:
+Natural Disaster Likelihood: {{{naturalDisasterLikelihood}}}
+
 Based on a thorough analysis of all the provided information, perform the following:
 1.  **Predict Revenue:** Forecast the revenue for the **next quarter** in **Sri Lankan Rupees (LKR)**.
-2.  **Analyze Trend:** Provide a detailed analysis explaining the prediction. Discuss how historical trends, production capacity, economic factors (GDP, inflation, unemployment, exchange rate), market signals (demand, material costs, trade), and any provided context contribute to the forecast. Explain your reasoning clearly. Consider seasonality if evident in historical data.
-3.  **Identify Risks:** Outline potential risk factors that could negatively impact this revenue prediction. Be specific (e.g., "A sudden increase in cotton prices by over 10%", "New import tariffs imposed by the EU", "Domestic political instability affecting production").
+2.  **Analyze Trend:** Provide a detailed analysis explaining the prediction. Discuss how historical trends, production capacity, economic factors (GDP, inflation, unemployment, exchange rate), market signals (demand, material costs, trade), the company's lifecycle stage, the likelihood of natural disasters, and any provided context contribute to the forecast. Explain your reasoning clearly. Consider seasonality if evident in historical data.
+3.  **Identify Risks:** Outline potential risk factors that could negatively impact this revenue prediction. Be specific (e.g., "A sudden increase in cotton prices by over 10%", "New import tariffs imposed by the EU", "Domestic political instability affecting production", "High chance of flooding disrupting supply chains").
 4.  **Estimate Confidence:** Provide a confidence score between 0.0 and 1.0 for your prediction, where 1.0 represents very high confidence. Justify this score briefly within the trend analysis.
 
 Output ONLY the JSON object conforming to the specified output schema. Do not include any introductory text, apologies, or explanations outside the JSON structure. Ensure the predicted revenue is a number representing LKR.
@@ -126,6 +134,8 @@ const predictRevenueFlow = ai.defineFlow<
       demand: marketSignals.demand,
       rawMaterialPrices: marketSignals.rawMaterialPrices,
       tradeConditions: marketSignals.tradeConditions,
+      lifetimeStage: input.lifetimeStage,
+      naturalDisasterLikelihood: input.naturalDisasterLikelihood,
     });
 
     if (!output) {
@@ -137,7 +147,6 @@ const predictRevenueFlow = ai.defineFlow<
         console.error("Invalid output format from AI:", output);
         throw new Error("Received invalid prediction format from AI.");
     }
-
 
     return output;
   }
