@@ -27,7 +27,7 @@ import { type EconomicIndicators, getEconomicIndicators } from '@/services/econo
 import { type MarketSignals, getMarketSignals } from '@/services/market';
 import { useToast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, AlertTriangle, Info, Activity, AlertCircle, Percent, DollarSign, Globe, Factory, CloudRain, Anchor, CalendarDays, BarChart, BrainCircuit } from 'lucide-react';
+import { Loader2, TrendingUp, AlertTriangle, Info, Activity, AlertCircle, Percent, DollarSign, Globe, Factory, CloudRain, Anchor, CalendarDays, BarChart, BrainCircuit, Megaphone, Users } from 'lucide-react'; // Added Megaphone, Users
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -40,6 +40,8 @@ import {
 } from '@/components/ui/select';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from "@/lib/utils";
+import { db } from '@/lib/firebase'; // Import Firebase
+import { collection, addDoc } from 'firebase/firestore'; // Import Firestore functions
 
 
 // Default historical data (can be overridden by user input)
@@ -89,6 +91,12 @@ const formSchema = z.object({
   productionCapacity: z.coerce.number().positive({
     message: 'Production capacity must be a positive number.',
   }),
+  marketingSpend: z.coerce.number().nonnegative({
+    message: 'Marketing spend cannot be negative (LKR).',
+  }),
+  laborCostIndex: z.coerce.number().positive({
+    message: 'Labor cost index must be a positive number (e.g., 1.0 for average).',
+  }),
   additionalContext: z.string().optional(),
   lifetimeStage: z.enum(['startup', 'growth', 'maturity', 'decline'], {
     required_error: 'Please select the company lifecycle stage.',
@@ -116,6 +124,8 @@ export default function DashboardPage() {
     defaultValues: {
       historicalRevenueData: JSON.stringify(defaultHistoricalData.slice(-4), null, 2), // Show recent data by default
       productionCapacity: 50000, // Example capacity
+      marketingSpend: 500000, // Example marketing spend
+      laborCostIndex: 1.0, // Example labor cost index
       additionalContext: '',
       lifetimeStage: 'growth',
       naturalDisasterLikelihood: 'low',
@@ -131,9 +141,10 @@ export default function DashboardPage() {
       setHasFetchError(false);
       try {
         console.log("Attempting to fetch initial real-time economic and market data...");
+        // Call services that might use node-fetch or similar *server-side*
         const [ecoData, mktData] = await Promise.all([
-          getEconomicIndicators(), // Calls the updated function in src/services/economy.ts
-          getMarketSignals(),    // Calls the updated function in src/services/market.ts
+          getEconomicIndicators(),
+          getMarketSignals(),
         ]);
         console.log("Fetched initial data:", { ecoData, mktData });
 
@@ -192,19 +203,40 @@ export default function DashboardPage() {
         return;
       }
 
-      // The AI flow internally calls getEconomicIndicators and getMarketSignals again.
-      // This ensures it uses the *latest* available data when the prediction is triggered.
-      // We rely on the service functions to handle fetching/caching/errors.
+      // The AI flow internally calls getEconomicIndicators and getMarketSignals again if needed,
+      // or we can pass the fetched data if the flow structure is adjusted.
+      // The current flow calls them internally.
       console.log("Calling predictRevenue flow with input:", data);
       const result = await predictRevenue({
         historicalRevenueData: data.historicalRevenueData,
         productionCapacity: data.productionCapacity,
+        marketingSpend: data.marketingSpend, // Pass new field
+        laborCostIndex: data.laborCostIndex, // Pass new field
         additionalContext: data.additionalContext,
         lifetimeStage: data.lifetimeStage,
         naturalDisasterLikelihood: data.naturalDisasterLikelihood,
       });
       console.log("Prediction result:", result);
       setPrediction(result);
+
+      // Save prediction to Firestore (async, no need to await unless critical)
+      addDoc(collection(db, "predictions"), {
+          ...data, // Include all form inputs
+          predictedRevenue: result.predictedRevenue,
+          trendAnalysis: result.trendAnalysis,
+          riskFactors: result.riskFactors,
+          confidenceScore: result.confidenceScore,
+          economicIndicatorsUsed: economicData, // Capture the indicators used for this prediction
+          marketSignalsUsed: marketData,        // Capture the signals used
+          predictionTimestamp: new Date()
+      }).then(docRef => {
+          console.log("Prediction data saved to Firestore with ID: ", docRef.id);
+      }).catch(e => {
+          console.error("Error saving prediction to Firestore: ", e);
+          // Optional: Show a non-critical toast message about save failure
+          // toast({ title: "Save Warning", description: "Could not save prediction details.", variant: "default" });
+      });
+
 
       // Generate next quarter label dynamically
       let nextQuarterLabel = 'Next Q (Pred.)';
@@ -240,8 +272,8 @@ export default function DashboardPage() {
       console.error('Prediction error:', error);
       let errorMessage = 'Failed to generate revenue prediction. Please try again.';
       if (error instanceof Error) {
-        errorMessage = error.message.includes('API key') || error.message.includes('quota')
-          ? 'Prediction service configuration error or quota issue. Please contact support.'
+        errorMessage = error.message.includes('API key') || error.message.includes('quota') || error.message.includes('Rate limit')
+          ? 'Prediction service configuration error, quota issue, or rate limit reached. Please contact support or try later.'
           : `Prediction failed: ${error.message.substring(0, 150)}`;
       }
       toast({
@@ -255,8 +287,8 @@ export default function DashboardPage() {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-secondary/50">
-      <header className="bg-background shadow-sm sticky top-0 z-10">
+    <div className="flex flex-col min-h-screen bg-background text-foreground"> {/* Use background and foreground directly */}
+      <header className="bg-card shadow-sm sticky top-0 z-10 border-b border-border"> {/* Use card and border */}
         <div className="container mx-auto px-6 py-4 flex justify-between items-center">
           <h1 className="text-xl font-semibold text-primary flex items-center gap-2">
             <TrendingUp className="w-5 h-5" /> LankaForecaster Dashboard
@@ -270,7 +302,7 @@ export default function DashboardPage() {
         <div className="lg:col-span-2 space-y-8">
 
           {/* Current Indicators Card */}
-          <Card className="shadow-md">
+          <Card className="shadow-md border-border"> {/* Use border */}
              <CardHeader>
                <CardTitle className="flex items-center gap-2"><Globe className="text-primary" />Current Economic & Market Snapshot</CardTitle>
                <CardDescription>
@@ -281,12 +313,12 @@ export default function DashboardPage() {
              <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
                {isLoadingIndicators ? (
                  <>
-                   <Skeleton className="h-6 w-3/4" />
-                   <Skeleton className="h-6 w-2/3" />
-                   <Skeleton className="h-6 w-3/4" />
-                   <Skeleton className="h-6 w-2/3" />
-                   <Skeleton className="h-6 w-3/4" />
-                   <Skeleton className="h-6 w-full col-span-2 md:col-span-1" />
+                   <Skeleton className="h-6 w-3/4 bg-muted" /> {/* Use muted for skeleton */}
+                   <Skeleton className="h-6 w-2/3 bg-muted" />
+                   <Skeleton className="h-6 w-3/4 bg-muted" />
+                   <Skeleton className="h-6 w-2/3 bg-muted" />
+                   <Skeleton className="h-6 w-3/4 bg-muted" />
+                   <Skeleton className="h-6 w-full col-span-2 md:col-span-1 bg-muted" />
                  </>
                ) : (
                  <>
@@ -302,7 +334,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Revenue Trend Chart Card */}
-          <Card className="shadow-md">
+          <Card className="shadow-md border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><BarChart className="text-primary" />Revenue Trend</CardTitle>
               <CardDescription>Historical and Predicted Quarterly Revenue (LKR)</CardDescription>
@@ -320,7 +352,7 @@ export default function DashboardPage() {
                     domain={['auto', 'auto']}
                   />
                   <Tooltip
-                    contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', boxShadow: 'hsl(var(--shadow))' }}
+                    contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))', borderRadius: 'var(--radius)', boxShadow: '0 2px 10px hsl(var(--shadow))', color: 'hsl(var(--foreground))' }} /* Adjusted tooltip style */
                     itemStyle={{ color: 'hsl(var(--foreground))' }}
                     labelStyle={{ fontWeight: 'bold', marginBottom: '4px', color: 'hsl(var(--primary))' }}
                     cursor={{ fill: 'hsl(var(--accent)/0.1)' }}
@@ -346,13 +378,14 @@ export default function DashboardPage() {
                      <Line
                        type="monotone"
                        dataKey="revenue"
-                       stroke="hsl(var(--accent))"
+                       stroke="hsl(var(--accent))" // Use accent color for prediction line
                        strokeWidth={2}
                        strokeDasharray="5 5"
                        dot={{ r: 4, fill: 'hsl(var(--accent))' }}
                        activeDot={{ r: 6, strokeWidth: 1, stroke: 'hsl(var(--accent))' }}
                        name="Prediction"
-                       data={chartData.filter((d, i, arr) => !arr[i-1]?.predicted && !d.predicted || d.predicted )}
+                       // Ensure connection: include last historical + predicted
+                       data={chartData.filter((d, i, arr) => (!arr[i-1]?.predicted && !d.predicted) || d.predicted )}
                        isAnimationActive={false}
                      />
                    )}
@@ -362,7 +395,7 @@ export default function DashboardPage() {
           </Card>
 
           {/* Prediction Analysis Card */}
-          <Card className="shadow-md">
+          <Card className="shadow-md border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><BrainCircuit className="text-primary" />Revenue Prediction Analysis</CardTitle>
               <CardDescription>AI-generated forecast and insights for the next quarter.</CardDescription>
@@ -375,7 +408,7 @@ export default function DashboardPage() {
                 </div>
               )}
               {!isLoadingPrediction && !prediction && (
-                <div className="flex flex-col items-center justify-center p-10 text-center text-muted-foreground border border-dashed rounded-lg">
+                <div className="flex flex-col items-center justify-center p-10 text-center text-muted-foreground border border-dashed rounded-lg border-border"> {/* Use border */}
                   <Info className="h-10 w-10 mb-3 text-primary" />
                   <span className="font-medium">Awaiting Input</span>
                   <span className="text-sm">Enter/confirm your data and click "Predict Revenue".</span>
@@ -384,10 +417,10 @@ export default function DashboardPage() {
               {prediction && (
                 <div className="space-y-6">
                   {/* Predicted Revenue & Confidence Score */}
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-6 rounded-lg bg-gradient-to-r from-primary/10 to-accent/10 border border-primary/20">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center p-6 rounded-lg bg-gradient-to-r from-primary/5 to-accent/5 border border-primary/10"> {/* Subtle gradient */}
                     <div className="text-center md:text-left">
                       <p className="text-sm font-medium text-primary uppercase tracking-wider mb-1">Predicted Revenue (Next Quarter)</p>
-                      <p className="text-3xl md:text-4xl font-bold text-accent">{formatLKR(prediction.predictedRevenue)}</p>
+                      <p className="text-3xl md:text-4xl font-bold text-primary">{formatLKR(prediction.predictedRevenue)}</p> {/* Use primary for predicted */}
                     </div>
                     <div className="text-center md:text-right">
                       <p className="text-sm font-medium text-primary uppercase tracking-wider mb-1">Prediction Confidence</p>
@@ -405,7 +438,7 @@ export default function DashboardPage() {
                   {/* Trend Analysis */}
                   <div>
                     <h4 className="font-semibold text-lg mb-2 flex items-center gap-2"><Activity className="w-5 h-5 text-primary" />Trend Analysis</h4>
-                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-line bg-muted/30 p-4 rounded-md border border-border">
+                    <p className="text-sm text-foreground leading-relaxed whitespace-pre-line bg-card p-4 rounded-md border border-border"> {/* Use card bg */}
                         {prediction.trendAnalysis || "No analysis provided."}
                     </p>
                   </div>
@@ -426,7 +459,7 @@ export default function DashboardPage() {
 
         {/* Right Column: Manual Input */}
         <div className="lg:col-span-1">
-          <Card className="shadow-md sticky top-24">
+          <Card className="shadow-md sticky top-24 border-border bg-card"> {/* Use card and border */}
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Factory className="text-primary"/>Prediction Input</CardTitle>
               <CardDescription>Provide company data to power the prediction.</CardDescription>
@@ -443,7 +476,7 @@ export default function DashboardPage() {
                         <FormControl>
                           <Textarea
                             placeholder='[{"name": "Q1 23", "revenue": 160000000}, ...]'
-                            className="min-h-[120px] font-mono text-xs resize-y"
+                            className="min-h-[100px] font-mono text-xs resize-y bg-input text-foreground border-border" /* Adjusted styles */
                             {...field}
                           />
                         </FormControl>
@@ -459,9 +492,35 @@ export default function DashboardPage() {
                     name="productionCapacity"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel className="flex items-center gap-1"><Factory className="w-4 h-4"/>Production Capacity (Units/Quarter)</FormLabel>
+                        <FormLabel className="flex items-center gap-1"><Factory className="w-4 h-4"/>Production Capacity (Units/Q)</FormLabel>
                         <FormControl>
-                          <Input type="number" placeholder="e.g., 50000" {...field} onChange={event => field.onChange(+event.target.value)} />
+                          <Input type="number" placeholder="e.g., 50000" {...field} onChange={event => field.onChange(+event.target.value)} className="bg-input text-foreground border-border" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="marketingSpend"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1"><Megaphone className="w-4 h-4"/>Marketing Spend (Last Q, LKR)</FormLabel>
+                        <FormControl>
+                          <Input type="number" placeholder="e.g., 500000" {...field} onChange={event => field.onChange(+event.target.value)} className="bg-input text-foreground border-border" />
+                        </FormControl>
+                        <FormMessage />
+                      </FormItem>
+                    )}
+                  />
+                  <FormField
+                    control={form.control}
+                    name="laborCostIndex"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel className="flex items-center gap-1"><Users className="w-4 h-4"/>Labor Cost Index (1.0 = avg)</FormLabel>
+                        <FormControl>
+                          <Input type="number" step="0.01" placeholder="e.g., 1.05" {...field} onChange={event => field.onChange(+event.target.value)} className="bg-input text-foreground border-border" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -475,11 +534,11 @@ export default function DashboardPage() {
                         <FormLabel className="flex items-center gap-1"><Anchor className="w-4 h-4"/>Company Lifecycle Stage</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                            <SelectTrigger className="bg-input text-foreground border-border"> {/* Style trigger */}
                               <SelectValue placeholder="Select stage" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="bg-popover text-popover-foreground border-border"> {/* Style content */}
                             <SelectItem value="startup">Startup</SelectItem>
                             <SelectItem value="growth">Growth</SelectItem>
                             <SelectItem value="maturity">Maturity</SelectItem>
@@ -498,11 +557,11 @@ export default function DashboardPage() {
                         <FormLabel className="flex items-center gap-1"><CloudRain className="w-4 h-4"/>Natural Disaster Likelihood (Next Q)</FormLabel>
                         <Select onValueChange={field.onChange} defaultValue={field.value}>
                           <FormControl>
-                            <SelectTrigger>
+                           <SelectTrigger className="bg-input text-foreground border-border"> {/* Style trigger */}
                               <SelectValue placeholder="Select likelihood" />
                             </SelectTrigger>
                           </FormControl>
-                          <SelectContent>
+                          <SelectContent className="bg-popover text-popover-foreground border-border"> {/* Style content */}
                             <SelectItem value="low">Low</SelectItem>
                             <SelectItem value="medium">Medium</SelectItem>
                             <SelectItem value="high">High</SelectItem>
@@ -519,7 +578,7 @@ export default function DashboardPage() {
                       <FormItem>
                         <FormLabel className="flex items-center gap-1"><Info className="w-4 h-4"/>Additional Context (Optional)</FormLabel>
                         <FormControl>
-                          <Textarea placeholder="e.g., Major new client, regulatory changes, factory downtime..." {...field} className="min-h-[80px] resize-y" />
+                          <Textarea placeholder="e.g., Major new client, regulatory changes, factory downtime..." {...field} className="min-h-[80px] resize-y bg-input text-foreground border-border" />
                         </FormControl>
                          <p className="text-xs text-muted-foreground pt-1">
                             Relevant factors not captured elsewhere (market shifts, internal issues).
@@ -528,7 +587,7 @@ export default function DashboardPage() {
                       </FormItem>
                     )}
                   />
-                  <Button type="submit" className="w-full bg-primary hover:bg-primary/90" disabled={isLoadingPrediction || isLoadingIndicators}>
+                  <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90" disabled={isLoadingPrediction || isLoadingIndicators}>
                     {isLoadingPrediction ? (
                       <>
                         <Loader2 className="mr-2 h-4 w-4 animate-spin" />
@@ -553,7 +612,7 @@ export default function DashboardPage() {
       </main>
 
       {/* Footer */}
-      <footer className="bg-background py-4 mt-12 border-t">
+      <footer className="bg-card py-4 mt-12 border-t border-border"> {/* Use card and border */}
         <div className="container mx-auto px-6 text-center text-sm text-muted-foreground">
           &copy; {currentYear ?? new Date().getFullYear()} LankaForecaster. AI-Powered Revenue Insights for the Sri Lankan Garment Industry.
         </div>
@@ -564,13 +623,13 @@ export default function DashboardPage() {
 
 // Inject styles for progress bar colors (runs client-side)
 const progressStyles = `
-  .progress-high .bg-primary { background-color: hsl(120, 60%, 40%); } /* Green */
-  .progress-medium .bg-primary { background-color: hsl(40, 95%, 55%); } /* Yellow-Gold */
-  .progress-low .bg-primary { background-color: hsl(0, 70%, 55%); } /* Soft Red */
+  .progress-high .bg-primary { background-color: hsl(140, 60%, 45%); } /* Greenish */
+  .progress-medium .bg-primary { background-color: hsl(45, 90%, 50%); } /* Yellowish */
+  .progress-low .bg-primary { background-color: hsl(var(--destructive)); } /* Use theme destructive */
 
-  .dark .progress-high .bg-primary { background-color: hsl(120, 50%, 50%); } /* Brighter Green */
-  .dark .progress-medium .bg-primary { background-color: hsl(40, 90%, 60%); } /* Brighter Gold */
-  .dark .progress-low .bg-primary { background-color: hsl(0, 60%, 60%); } /* Brighter Soft Red */
+  .dark .progress-high .bg-primary { background-color: hsl(140, 50%, 55%); }
+  .dark .progress-medium .bg-primary { background-color: hsl(45, 85%, 55%); }
+  .dark .progress-low .bg-primary { background-color: hsl(var(--destructive)); }
 `;
 
 if (typeof window !== 'undefined') {
