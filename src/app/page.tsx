@@ -7,86 +7,92 @@ import { BarChartIcon, DollarSignIcon, TrendingUpIcon } from 'lucide-react';
 export default function LandingPage() {
   return (
     <div className="flex flex-col min-h-screen">
-      <header className="container mx-auto px-4 py-6 flex justify-between items-center">
-        <h1 className="text-2xl font-bold text-primary">LankaForecaster</h1>
+      <header className="container mx-auto px-6 py-8 flex justify-between items-center">
+        <Link href="/" className="text-2xl font-bold text-primary">
+          <span className="inline-block mr-2">
+            <TrendingUpIcon className="w-6 h-6 inline-block align-middle" />
+          </span>
+          LankaForecaster
+        </Link>
         <nav>
           <Link href="/signup" passHref>
-            <Button>Get Started</Button>
+            <Button variant="outline">Get Started</Button>
           </Link>
         </nav>
       </header>
 
       <main className="flex-grow">
         {/* Hero Section */}
-        <section className="bg-secondary py-20 text-center">
-          <div className="container mx-auto px-4">
-            <h2 className="text-4xl font-bold mb-4 text-primary">
-              Predict Your Garment Industry Revenue with Confidence
+        <section className="bg-secondary py-24 text-center">
+          <div className="container mx-auto px-6">
+            <h2 className="text-5xl font-bold mb-6 text-primary leading-tight">
+              Unlock the Future of Garment Revenue with AI-Powered Insights
             </h2>
-            <p className="text-lg text-muted-foreground mb-8 max-w-2xl mx-auto">
-              LankaForecaster leverages AI to analyze historical data and market signals, providing accurate revenue predictions for Sri Lanka's garment sector. Make informed decisions and drive growth.
+            <p className="text-lg text-muted-foreground mb-12 max-w-3xl mx-auto">
+              LankaForecaster provides cutting-edge revenue predictions for Sri Lanka's garment industry.
+              Leverage historical data, market trends, and economic indicators to make strategic decisions and drive sustainable growth.
             </p>
             <Link href="/signup" passHref>
-              <Button size="lg" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                Sign Up for Free Trial
+              <Button size="lg" className="bg-primary text-primary-foreground hover:bg-primary/90">
+                Start Forecasting Today
               </Button>
             </Link>
-            <div className="mt-12 relative aspect-video max-w-4xl mx-auto rounded-lg overflow-hidden shadow-xl">
-               <Image
-                src="https://picsum.photos/1200/675"
+            <div className="mt-16 relative aspect-video max-w-5xl mx-auto rounded-xl overflow-hidden shadow-2xl">
+              <Image
+                src="https://picsum.photos/1280/720"
                 alt="Sri Lanka garment factory"
                 layout="fill"
                 objectFit="cover"
-                data-ai-hint="garment factory textile industry"
+                data-ai-hint="garment factory textile industry production"
               />
-               <div className="absolute inset-0 bg-gradient-to-t from-black/50 to-transparent"></div>
+              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
             </div>
           </div>
         </section>
 
         {/* Features Section */}
         <section className="py-20">
-          <div className="container mx-auto px-4">
-            <h3 className="text-3xl font-bold text-center mb-12">
-              Features Designed for Growth
+          <div className="container mx-auto px-6">
+            <h3 className="text-4xl font-bold text-center mb-16 text-primary">
+              Key Features
             </h3>
-            <div className="grid md:grid-cols-3 gap-8">
-              <Card className="text-center shadow-md hover:shadow-lg transition-shadow duration-300">
+            <div className="grid md:grid-cols-3 gap-12">
+              <Card className="text-center shadow-xl hover:shadow-2xl transition-shadow duration-300">
                 <CardHeader>
-                  <div className="mx-auto bg-primary/10 text-primary rounded-full p-3 w-fit mb-4">
-                    <BarChartIcon className="h-8 w-8" />
+                  <div className="mx-auto bg-primary/10 text-primary rounded-full p-4 w-fit mb-5">
+                    <BarChartIcon className="h-9 w-9" />
                   </div>
-                  <CardTitle>Interactive Dashboard</CardTitle>
+                  <CardTitle className="text-xl font-semibold">Interactive Dashboard</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Visualize revenue predictions and KPIs with interactive charts and graphs for easy understanding.
+                    Visualize your revenue predictions and key performance indicators (KPIs) with interactive and intuitive charts and graphs.
                   </p>
                 </CardContent>
               </Card>
-              <Card className="text-center shadow-md hover:shadow-lg transition-shadow duration-300">
+              <Card className="text-center shadow-xl hover:shadow-2xl transition-shadow duration-300">
                 <CardHeader>
-                   <div className="mx-auto bg-primary/10 text-primary rounded-full p-3 w-fit mb-4">
-                     <TrendingUpIcon className="h-8 w-8" />
-                   </div>
-                  <CardTitle>AI Revenue Prediction</CardTitle>
+                  <div className="mx-auto bg-primary/10 text-primary rounded-full p-4 w-fit mb-5">
+                    <TrendingUpIcon className="h-9 w-9" />
+                  </div>
+                  <CardTitle className="text-xl font-semibold">AI-Powered Predictions</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Get accurate future revenue forecasts based on historical data, market trends, and economic indicators.
+                    Leverage our advanced AI algorithms to generate accurate revenue forecasts based on comprehensive data analysis.
                   </p>
                 </CardContent>
               </Card>
-              <Card className="text-center shadow-md hover:shadow-lg transition-shadow duration-300">
+              <Card className="text-center shadow-xl hover:shadow-2xl transition-shadow duration-300">
                 <CardHeader>
-                   <div className="mx-auto bg-primary/10 text-primary rounded-full p-3 w-fit mb-4">
-                     <DollarSignIcon className="h-8 w-8" />
-                   </div>
-                  <CardTitle>Manual Data Input</CardTitle>
+                  <div className="mx-auto bg-primary/10 text-primary rounded-full p-4 w-fit mb-5">
+                    <DollarSignIcon className="h-9 w-9" />
+                  </div>
+                  <CardTitle className="text-xl font-semibold">Custom Data Input</CardTitle>
                 </CardHeader>
                 <CardContent>
                   <p className="text-muted-foreground">
-                    Easily input your company's revenue, production, and other relevant data through a user-friendly interface.
+                    Seamlessly integrate your company's data through our user-friendly interface, ensuring precise and tailored predictions.
                   </p>
                 </CardContent>
               </Card>
@@ -95,25 +101,25 @@ export default function LandingPage() {
         </section>
 
         {/* Call to Action Section */}
-        <section className="bg-primary text-primary-foreground py-16 text-center">
-          <div className="container mx-auto px-4">
-            <h3 className="text-3xl font-bold mb-4">
-              Ready to Forecast Your Success?
+        <section className="bg-primary text-primary-foreground py-24 text-center">
+          <div className="container mx-auto px-6">
+            <h3 className="text-4xl font-bold mb-6">
+              Elevate Your Business Strategy with LankaForecaster
             </h3>
-            <p className="text-lg mb-8">
-              Join LankaForecaster today and gain the insights you need to navigate the dynamic garment industry.
+            <p className="text-lg mb-10">
+              Ready to transform your revenue forecasting process?
             </p>
             <Link href="/signup" passHref>
               <Button size="lg" variant="secondary" className="bg-accent text-accent-foreground hover:bg-accent/90">
-                Start Your Free Trial Now
+                Start Your Free Trial
               </Button>
             </Link>
           </div>
         </section>
       </main>
 
-      <footer className="bg-secondary py-6 text-center text-muted-foreground">
-        <div className="container mx-auto px-4">
+      <footer className="bg-secondary py-8 text-center text-muted-foreground border-t">
+        <div className="container mx-auto px-6">
           <p>&copy; {new Date().getFullYear()} LankaForecaster. All rights reserved.</p>
         </div>
       </footer>

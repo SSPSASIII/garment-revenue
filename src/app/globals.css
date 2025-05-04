@@ -3,81 +3,81 @@
 @tailwind utilities;
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Geist', sans-serif; /* Use Geist font */
 }
 
 @layer base {
   :root {
-    --background: 0 0% 94.1%; /* Light Gray */
-    --foreground: 0 0% 3.9%;  /* Dark Gray/Black */
+    --background: 220 20% 98%; /* Off-White */
+    --foreground: 220 20% 20%; /* Dark Gray */
     --card: 0 0% 100%; /* White */
-    --card-foreground: 0 0% 3.9%;
+    --card-foreground: 220 20% 20%;
     --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 3.9%;
-    --primary: 180 100% 25.1%; /* Teal */
+    --popover-foreground: 220 20% 20%;
+    --primary: 260 80% 50%; /* Purple */
     --primary-foreground: 0 0% 100%; /* White */
-    --secondary: 0 0% 96.1%; /* Default Shadcn Light Gray */
-    --secondary-foreground: 0 0% 9%; /* Default Shadcn Dark */
-    --muted: 0 0% 96.1%;
-    --muted-foreground: 0 0% 45.1%;
-    --accent: 45 100% 51.2%; /* Golden Yellow */
-    --accent-foreground: 0 0% 3.9%; /* Dark Gray/Black */
-    --destructive: 0 84.2% 60.2%; /* Default Red */
-    --destructive-foreground: 0 0% 98%; /* Default Light */
-    --border: 0 0% 89.8%;
-    --input: 0 0% 89.8%;
-    --ring: 180 100% 25.1%; /* Teal for focus rings */
-    --chart-1: 12 76% 61%;
-    --chart-2: 173 58% 39%;
-    --chart-3: 197 37% 24%;
-    --chart-4: 43 74% 66%;
-    --chart-5: 27 87% 67%;
-    --radius: 0.5rem;
-    --shadow: 220 3% 15%; /* Shadow color */
+    --secondary: 230 30% 90%; /* Light Blue-Gray */
+    --secondary-foreground: 220 20% 20%;
+    --muted: 230 30% 90%;
+    --muted-foreground: 220 15% 45%;
+    --accent: 40 95% 55%; /* Orange-Gold */
+    --accent-foreground: 0 0% 10%;
+    --destructive: 0 70% 55%; /* Soft Red */
+    --destructive-foreground: 0 0% 98%;
+    --border: 220 30% 85%;
+    --input: 220 20% 88%;
+    --ring: 260 80% 50%; /* Purple Ring */
+    --chart-1: 30 80% 50%;
+    --chart-2: 120 60% 40%;
+    --chart-3: 240 70% 55%;
+    --chart-4: 300 50% 60%;
+    --chart-5: 60 90% 45%;
+    --radius: 0.75rem; /* Slightly more rounded */
+    --shadow: 220 10% 20%; /* Shadow color */
     --sidebar-background: 0 0% 98%; /* Slightly off-white for sidebar */
     --sidebar-foreground: 0 0% 3.9%;
-    --sidebar-primary: 180 100% 25.1%; /* Teal */
+    --sidebar-primary: 260 80% 50%; /* Purple */
     --sidebar-primary-foreground: 0 0% 98%; /* White */
     --sidebar-accent: 0 0% 94.1%; /* Light Gray for sidebar accent */
     --sidebar-accent-foreground: 0 0% 3.9%; /* Dark Gray/Black */
     --sidebar-border: 0 0% 89.8%;
-    --sidebar-ring: 180 100% 25.1%; /* Teal */
+    --sidebar-ring: 260 80% 50%; /* Purple */
   }
+
   .dark {
-    /* Define dark mode colors if needed, otherwise keep defaults or adjust */
-    --background: 0 0% 3.9%;
-    --foreground: 0 0% 98%;
-    --card: 0 0% 3.9%;
-    --card-foreground: 0 0% 98%;
-    --popover: 0 0% 3.9%;
-    --popover-foreground: 0 0% 98%;
-    --primary: 180 100% 35.1%; /* Slightly lighter Teal for dark mode */
-    --primary-foreground: 0 0% 9%;
-    --secondary: 0 0% 14.9%;
-    --secondary-foreground: 0 0% 98%;
-    --muted: 0 0% 14.9%;
-    --muted-foreground: 0 0% 63.9%;
-    --accent: 45 100% 51.2%; /* Golden Yellow */
-    --accent-foreground: 0 0% 3.9%; /* Dark Gray/Black */
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 14.9%;
-    --input: 0 0% 14.9%;
-    --ring: 180 100% 35.1%; /* Slightly lighter Teal */
-    --chart-1: 220 70% 50%;
-    --chart-2: 160 60% 45%;
-    --chart-3: 30 80% 55%;
-    --chart-4: 280 65% 60%;
-    --chart-5: 340 75% 55%;
-    --shadow: 220 40% 2%; /* Shadow color for dark mode */
-    --sidebar-background: 0 0% 5%; /* Dark background for sidebar */
-    --sidebar-foreground: 0 0% 98%; /* White */
-    --sidebar-primary: 180 100% 35.1%; /* Slightly lighter Teal */
-    --sidebar-primary-foreground: 0 0% 9%;
-    --sidebar-accent: 0 0% 14.9%; /* Darker accent for sidebar */
-    --sidebar-accent-foreground: 0 0% 98%; /* White */
-    --sidebar-border: 0 0% 14.9%;
-    --sidebar-ring: 180 100% 35.1%; /* Slightly lighter Teal */
+    --background: 220 15% 15%; /* Dark Slate */
+    --foreground: 220 20% 90%; /* Light Gray */
+    --card: 220 15% 15%; /* Dark Slate */
+    --card-foreground: 220 20% 90%;
+    --popover: 220 15% 15%; /* Dark Slate */
+    --popover-foreground: 220 20% 90%;
+    --primary: 260 60% 60%; /* Light Purple */
+    --primary-foreground: 220 10% 10%; /* Near Black */
+    --secondary: 230 30% 30%; /* Darker Blue-Gray */
+    --secondary-foreground: 220 20% 80%;
+    --muted: 220 15% 25%;
+    --muted-foreground: 220 10% 60%;
+    --accent: 40 90% 60%; /* Bright Gold */
+    --accent-foreground: 220 10% 10%;
+    --destructive: 0 60% 60%; /* Soft Red */
+    --destructive-foreground: 0 0% 90%;
+    --border: 220 10% 30%;
+    --input: 220 10% 25%;
+    --ring: 260 60% 60%; /* Light Purple */
+    --chart-1: 30 70% 60%;
+    --chart-2: 120 50% 50%;
+    --chart-3: 240 60% 65%;
+    --chart-4: 300 40% 70%;
+    --chart-5: 60 80% 55%;
+    --shadow: 220 5% 10%; /* Shadow color for dark mode */
+    --sidebar-background: 220 10% 10%; /* Dark Slate */
+    --sidebar-foreground: 220 20% 90%; /* Light Gray */
+    --sidebar-primary: 260 60% 60%; /* Light Purple */
+    --sidebar-primary-foreground: 220 10% 10%; /* Near Black */
+    --sidebar-accent: 220 15% 20%; /* Darker accent for sidebar */
+    --sidebar-accent-foreground: 220 20% 80%; /* White */
+    --sidebar-border: 220 10% 30%;
+    --sidebar-ring: 260 60% 60%; /* Light Purple */
   }
 }
 
