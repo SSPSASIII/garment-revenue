@@ -15,6 +15,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription, // Added FormDescription import
   FormField,
   FormItem,
   FormLabel,
@@ -63,6 +64,7 @@ export default function DashboardPage() {
   const [prediction, setPrediction] = React.useState<RevenuePredictionOutput | null>(null);
   const [isLoading, setIsLoading] = React.useState(false);
   const [chartData, setChartData] = React.useState(historicalData);
+  const [currentDate, setCurrentDate] = React.useState<string | null>(null);
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
@@ -72,6 +74,11 @@ export default function DashboardPage() {
       economicNotes: '',
     },
   });
+
+   // Effect to set current date on client-side mount
+   React.useEffect(() => {
+    setCurrentDate(new Date().getFullYear().toString());
+  }, []);
 
    const onSubmit = async (data: FormValues) => {
     setIsLoading(true);
@@ -260,7 +267,7 @@ export default function DashboardPage() {
       </main>
        <footer className="bg-background py-4 mt-8 border-t">
         <div className="container mx-auto px-4 text-center text-sm text-muted-foreground">
-           &copy; {new Date().getFullYear()} LankaForecaster. AI-Powered Insights.
+           &copy; {currentDate ?? ''} LankaForecaster. AI-Powered Insights.
          </div>
       </footer>
     </div>
