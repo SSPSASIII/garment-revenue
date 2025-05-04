@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'; // Use node-fetch for server-side requests
-
 /**
  * Represents key economic indicators for Sri Lanka.
  */
@@ -37,6 +35,7 @@ const defaultIndicators: EconomicIndicators = {
 /**
  * Asynchronously retrieves Sri Lankan economic indicators by fetching data from
  * relevant APIs like the Central Bank of Sri Lanka and the World Bank.
+ * Intended for SERVER-SIDE use.
  *
  * **Note:** This function requires API keys to be set in environment variables:
  * - `CBSL_API_KEY`: For the Central Bank API.
@@ -47,7 +46,7 @@ const defaultIndicators: EconomicIndicators = {
  * @returns A promise that resolves to an EconomicIndicators object containing the latest data, or default values if APIs fail.
  */
 export async function getEconomicIndicators(): Promise<EconomicIndicators> {
-  console.log("Fetching real-time economic indicators...");
+  console.log("Fetching real-time economic indicators (server-side)...");
 
   const cbslApiKey = process.env.CBSL_API_KEY;
   // const worldBankApiKey = process.env.WORLD_BANK_API_KEY; // May not be needed depending on endpoint
@@ -59,7 +58,7 @@ export async function getEconomicIndicators(): Promise<EconomicIndicators> {
 
   try {
     // --- Fetch data from Central Bank API ---
-    // Note: Adjust endpoint and headers based on actual CBSL API documentation
+    // Note: Use native fetch or a server-compatible library here
     const cbslResponse = await fetch(CBSL_API_ENDPOINT, {
       method: 'GET',
       headers: {
@@ -75,7 +74,6 @@ export async function getEconomicIndicators(): Promise<EconomicIndicators> {
     const cbslData = await cbslResponse.json() as any; // Cast to 'any' or define a specific type
 
     // --- Fetch additional data (e.g., GDP from World Bank) ---
-    // Note: World Bank API might not need a key for some indicators. Check their docs.
     const worldBankResponse = await fetch(WORLD_BANK_API_ENDPOINT);
     if (!worldBankResponse.ok) {
         console.warn(`World Bank API Error: ${worldBankResponse.status} ${worldBankResponse.statusText}. GDP data might be missing.`);
@@ -84,23 +82,20 @@ export async function getEconomicIndicators(): Promise<EconomicIndicators> {
     const worldBankData = worldBankResponse.ok ? await worldBankResponse.json() : null;
 
     // --- Parse and Combine Data ---
-    // This part heavily depends on the actual structure of the API responses
-    // Example parsing (replace with actual logic):
     const latestWorldBankGDP = worldBankData?.[1]?.[0]?.value; // Example path to latest value
 
     const indicators: EconomicIndicators = {
-      // Use CBSL data preferentially, fallback where needed
       gdpGrowthRate: typeof latestWorldBankGDP === 'number' ? parseFloat(latestWorldBankGDP.toFixed(1)) : (cbslData?.gdp_growth_latest ?? defaultIndicators.gdpGrowthRate),
       inflationRate: cbslData?.inflation_rate_ccpi ?? defaultIndicators.inflationRate,
       unemploymentRate: cbslData?.unemployment_rate ?? defaultIndicators.unemploymentRate,
       exchangeRate: cbslData?.exchange_rate_usd_lkr_avg ?? defaultIndicators.exchangeRate,
     };
 
-    console.log("Economic Indicators (Fetched):", indicators);
+    console.log("Economic Indicators (Fetched on Server):", indicators);
     return indicators;
 
   } catch (error: unknown) {
-    console.error("Failed to fetch real-time economic indicators:", error instanceof Error ? error.message : String(error));
+    console.error("Failed to fetch real-time economic indicators (server-side):", error instanceof Error ? error.message : String(error));
     console.log("Falling back to default economic data due to error.");
     return defaultIndicators;
   }

@@ -1,5 +1,3 @@
-import fetch from 'node-fetch'; // Use node-fetch for server-side requests
-
 /**
  * Represents market signals relevant to the Sri Lankan garment industry.
  */
@@ -41,6 +39,7 @@ const defaultSignals: MarketSignals = {
 /**
  * Asynchronously retrieves market signals for the Sri Lankan garment industry by fetching
  * data from relevant APIs (e.g., Stock Exchange, Customs, Commodity Prices, News).
+ * Intended for SERVER-SIDE use.
  *
  * **Note:** This function requires API keys set in environment variables:
  * - `CSE_API_KEY`: For Colombo Stock Exchange API.
@@ -53,7 +52,7 @@ const defaultSignals: MarketSignals = {
  * @returns A promise that resolves to a MarketSignals object containing the latest data, or default values if APIs fail.
  */
 export async function getMarketSignals(): Promise<MarketSignals> {
-  console.log("Fetching real-time market signals...");
+  console.log("Fetching real-time market signals (server-side)...");
 
   const cseApiKey = process.env.CSE_API_KEY;
   const customsApiKey = process.env.CUSTOMS_API_KEY;
@@ -68,22 +67,19 @@ export async function getMarketSignals(): Promise<MarketSignals> {
 
   try {
     // --- Fetch data from multiple sources ---
-    // Example: Fetching CSE Market Data
+    // Note: Use native fetch or a server-compatible library here
     const csePromise = fetch(CSE_API_ENDPOINT, {
         headers: { 'X-API-Key': cseApiKey } // Adjust auth based on API docs
     }).then(res => res.ok ? res.json() : Promise.reject(`CSE API Error: ${res.status}`));
 
-    // Example: Fetching Customs Trade Data
     const customsPromise = fetch(CUSTOMS_API_ENDPOINT, {
         headers: { 'Authorization': `Bearer ${customsApiKey}` } // Adjust auth
     }).then(res => res.ok ? res.json() : Promise.reject(`Customs API Error: ${res.status}`));
 
-    // Example: Fetching Commodity Prices (Cotton)
     const commodityPromise = commodityApiKey ? fetch(COMMODITY_API_ENDPOINT, {
         headers: { 'X-API-Key': commodityApiKey } // Adjust auth
     }).then(res => res.ok ? res.json() : Promise.reject(`Commodity API Error: ${res.status}`)) : Promise.resolve(null); // Optional API
 
-     // Example: Fetching Trade News Summary
      const newsPromise = newsApiKey ? fetch(NEWS_API_ENDPOINT, {
         headers: { 'X-API-Key': newsApiKey } // Adjust auth
     }).then(res => res.ok ? res.json() : Promise.reject(`News API Error: ${res.status}`)) : Promise.resolve(null); // Optional API
@@ -97,8 +93,6 @@ export async function getMarketSignals(): Promise<MarketSignals> {
     ]);
 
     // --- Process and aggregate data ---
-    // This is highly dependent on the API response structures.
-    // You'll need to implement functions to calculate indices and summarize text.
     const calculatedDemandIndex = calculateDemandIndex(cseData, customsData); // Implement this
     const calculatedMaterialIndex = calculateMaterialIndex(commodityData); // Implement this
     const summarizedTradeConditions = summarizeTradeConditions(newsData, customsData); // Implement this
@@ -109,12 +103,11 @@ export async function getMarketSignals(): Promise<MarketSignals> {
       tradeConditions: summarizedTradeConditions ?? defaultSignals.tradeConditions,
     };
 
-    console.log("Market Signals (Fetched):", signals);
+    console.log("Market Signals (Fetched on Server):", signals);
     return signals;
 
   } catch (error: unknown) {
-    // Catch errors not handled by individual promises (e.g., Promise.all failure)
-    console.error("Failed to fetch one or more real-time market signals:", error instanceof Error ? error.message : String(error));
+    console.error("Failed to fetch one or more real-time market signals (server-side):", error instanceof Error ? error.message : String(error));
     console.log("Falling back to default market signals due to error.");
     return defaultSignals;
   }
@@ -124,29 +117,23 @@ export async function getMarketSignals(): Promise<MarketSignals> {
 // --- Placeholder Helper Functions (Implement these based on API data) ---
 
 function calculateDemandIndex(cseData: any, customsData: any): number | null {
-    // Logic to analyze stock market trends, sector performance, and export volumes
-    // Example: Combine CSE apparel sector index changes with recent export growth rates
     console.log("Placeholder: Calculating demand index...");
     if (!cseData || !customsData) return null;
-    // Replace with actual calculation
     const baseDemand = 1.0;
-    const cseFactor = cseData?.sectors?.apparel?.change_pct ?? 0; // Example path
-    const exportFactor = customsData?.latest_export_growth?.garments_pct ?? 0; // Example path
-    // Simple example weighting
+    const cseFactor = cseData?.sectors?.apparel?.change_pct ?? 0;
+    const exportFactor = customsData?.latest_export_growth?.garments_pct ?? 0;
     return parseFloat((baseDemand * (1 + cseFactor * 0.002 + exportFactor * 0.005)).toFixed(2));
 }
 
 function calculateMaterialIndex(commodityData: any): number | null {
-    // Logic to get latest cotton price and potentially other materials, compare to baseline
     console.log("Placeholder: Calculating material index...");
     if (!commodityData?.price) return null;
-    const baselineCottonPrice = 150; // Example baseline
+    const baselineCottonPrice = 150;
     const currentPrice = commodityData.price;
     return parseFloat((currentPrice / baselineCottonPrice).toFixed(2));
 }
 
 function summarizeTradeConditions(newsData: any, customsData: any): string | null {
-    // Logic to summarize key points from recent trade news and customs reports
     console.log("Placeholder: Summarizing trade conditions...");
     let summary = "";
     if(customsData?.gsp_status === 'active') {
@@ -154,12 +141,11 @@ function summarizeTradeConditions(newsData: any, customsData: any): string | nul
     } else {
         summary += "EU GSP+ status uncertain/inactive. ";
     }
-    // Add snippets from newsData headlines or summaries
     const topHeadline = newsData?.articles?.[0]?.title;
     if(topHeadline) {
         summary += `Recent News: ${topHeadline.substring(0, 80)}...`;
     }
 
     if (!summary) return null;
-    return summary.trim() || defaultSignals.tradeConditions; // Fallback if summary is empty
+    return summary.trim() || defaultSignals.tradeConditions;
 }
