@@ -31,7 +31,8 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { FactoryIcon, UserIcon } from 'lucide-react';
+import { FactoryIcon, UserIcon, PhoneIcon, UserCircleIcon } from 'lucide-react'; // Added PhoneIcon, UserCircleIcon
+import { useRouter } from 'next/navigation'; // Import useRouter
 
 const formSchema = z.object({
   email: z.string().email({ message: 'Invalid email address.' }),
@@ -51,6 +52,7 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function SignupPage() {
   const { toast } = useToast();
+  const router = useRouter(); // Initialize useRouter
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
@@ -59,23 +61,26 @@ export default function SignupPage() {
       confirmPassword: '',
       companyName: '',
       companyAddress: '',
+      role: undefined, // Ensure role is initially undefined to show placeholder
     },
   });
 
   const onSubmit = (data: FormValues) => {
     console.log('Signup data:', data);
-    // TODO: Implement actual signup logic (e.g., API call)
+    // TODO: Implement actual signup logic (e.g., API call, authentication)
     toast({
       title: 'Signup Successful!',
-      description: 'Welcome to LankaForecaster. Redirecting to dashboard...',
+      description: 'Welcome to LankaForecaster. Redirecting to login...',
     });
-    // Simulate redirection or handle routing after successful signup
-    // router.push('/dashboard'); // Example using next/router if needed
+    // Redirect to login page after successful signup
+     setTimeout(() => {
+       router.push('/login');
+     }, 1500);
   };
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-secondary p-4">
-      <Card className="w-full max-w-2xl shadow-lg">
+      <Card className="w-full max-w-2xl shadow-lg border-primary/20">
         <CardHeader className="text-center">
           <CardTitle className="text-2xl font-bold text-primary">Create Your LankaForecaster Account</CardTitle>
           <CardDescription>Join us to predict your garment industry revenue.</CardDescription>
@@ -83,7 +88,7 @@ export default function SignupPage() {
         <CardContent>
           <Form {...form}>
             <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
                 {/* User Details */}
                 <div className="space-y-4">
                   <h3 className="text-lg font-semibold flex items-center gap-2 text-primary"><UserIcon className="w-5 h-5" /> User Details</h3>
@@ -107,7 +112,7 @@ export default function SignupPage() {
                       <FormItem>
                         <FormLabel>Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="********" {...field} />
+                          <Input type="password" placeholder="Minimum 8 characters" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -120,7 +125,7 @@ export default function SignupPage() {
                       <FormItem>
                         <FormLabel>Confirm Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="********" {...field} />
+                          <Input type="password" placeholder="Re-enter password" {...field} />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -184,19 +189,27 @@ export default function SignupPage() {
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 mt-8"> {/* Added margin-top */}
                 Create Account
               </Button>
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="text-center text-sm">
+        <CardFooter className="flex flex-col items-center text-sm space-y-3 pt-4 border-t"> {/* Added padding-top and border */}
           <p className="text-muted-foreground">
             Already have an account?{' '}
-            <Link href="/login" className="text-primary hover:underline">
+            <Link href="/login" className="text-primary hover:underline font-medium">
               Log in
             </Link>
           </p>
+          <div className="text-xs text-muted-foreground flex items-center gap-4 mt-2">
+             <span className="flex items-center gap-1">
+                <UserCircleIcon className="w-3 h-3"/> S.S. Paranamana
+             </span>
+             <span className="flex items-center gap-1">
+                <PhoneIcon className="w-3 h-3"/> +94775217044
+             </span>
+          </div>
         </CardFooter>
       </Card>
     </div>
