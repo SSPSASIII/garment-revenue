@@ -1,6 +1,7 @@
 /**
  * @fileOverview API Key and Rate Limit Management Service.
  * Provides functions for retrieving API keys and checking rate limit statuses.
+ * NOTE: This service is currently simplified as specific external API keys are not configured.
  */
 import dotenv from 'dotenv';
 
@@ -15,36 +16,26 @@ export interface RateLimitStatus {
 
 /**
  * Retrieves API keys for specified services.
- * In a real application, this would fetch keys from a secure vault or environment variables.
+ * Currently, this returns an empty object as specific external keys are not configured.
+ * The primary GOOGLE_GENAI_API_KEY is handled directly by Genkit configuration.
  *
  * @returns An object containing API keys.
  */
 export async function getApiKeys(): Promise<Record<string, string | undefined>> {
-  console.log("Attempting to retrieve API keys from environment variables...");
-  // Example: Replace with actual logic to retrieve keys securely
-  const keys = {
-    cbsl: process.env.CBSL_API_KEY,
-    cse: process.env.CSE_API_KEY,
-    customs: process.env.CUSTOMS_API_KEY,
-    worldBank: process.env.WORLD_BANK_API_KEY,
-    commodity: process.env.COMMODITY_API_KEY,
-    news: process.env.NEWS_API_KEY,
-  };
-  // console.log("Retrieved API keys:", keys); // Be cautious logging keys, even undefined ones.
-  return keys;
+  console.log("No specific external API keys are configured in api-manager.ts. GOOGLE_GENAI_API_KEY is used by Genkit directly.");
+  return {};
 }
 
 /**
  * Checks the rate limit status for a specific API service.
- * In a real application, this would involve checking API response headers or a rate limit tracking system.
+ * This is a placeholder as specific external APIs are not actively being called by these services.
  *
  * @param serviceName The name of the service (e.g., 'central_bank', 'cse').
  * @returns A promise that resolves to the RateLimitStatus or null if unavailable.
  */
 export async function getRateLimitStatus(serviceName: string): Promise<RateLimitStatus | null> {
-  console.log(`Placeholder: Checking rate limit status for ${serviceName}...`);
+  console.log(`Placeholder: Checking rate limit status for ${serviceName}. This service is not actively calling external APIs with dedicated keys.`);
   // Example: Return a default high limit for now
-  // Replace with actual logic to check rate limits
   return {
     remaining: 100, // Assume plenty remaining
     limit: 120,
