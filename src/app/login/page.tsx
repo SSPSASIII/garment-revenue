@@ -26,7 +26,8 @@
  import { Input } from '@/components/ui/input';
  import { useToast } from '@/hooks/use-toast';
  import { useRouter } from 'next/navigation'; // Use next/navigation for App Router
- import { TrendingUpIcon } from 'lucide-react'; // Added TrendingUpIcon
+ import { TrendingUpIcon } from 'lucide-react';
+ import { cn } from "@/lib/utils";
 
  const formSchema = z.object({
    email: z.string().email({ message: 'Invalid email address.' }),
@@ -83,7 +84,16 @@
                    <FormItem>
                      <FormLabel className="text-foreground">Email Address</FormLabel> {/* Use foreground text */}
                      <FormControl>
-                       <Input placeholder="you@company.com" {...field} className="bg-input text-foreground border-input" /> {/* Use input styles */}
+                      {/* Using plain HTML input for diagnosis */}
+                       <input
+                         type="email"
+                         placeholder="you@company.com"
+                         {...field} // Spread field props (includes ref, name, value, onChange, onBlur)
+                         className={cn(
+                           "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
+                           "bg-input text-foreground border-input" // Original classes from custom Input
+                         )}
+                       />
                      </FormControl>
                      <FormMessage />
                    </FormItem>
@@ -96,7 +106,11 @@
                    <FormItem>
                      <FormLabel className="text-foreground">Password</FormLabel> {/* Use foreground text */}
                      <FormControl>
-                       <Input type="password" placeholder="********" {...field} className="bg-input text-foreground border-input" /> {/* Use input styles */}
+                       <Input // Keeping custom Input for password field for now
+                        type="password"
+                        placeholder="********"
+                        {...field}
+                        className="bg-input text-foreground border-input" /> {/* Use input styles */}
                      </FormControl>
                      <FormMessage />
                    </FormItem>
