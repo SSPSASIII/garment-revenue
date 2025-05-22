@@ -55,7 +55,7 @@
      toast({
        title: 'Login Successful!',
        description: 'Redirecting to your dashboard...',
-       variant: 'default', // Use default toast for success
+       variant: 'default', 
      });
 
      // Redirect to dashboard after a short delay
@@ -65,8 +65,8 @@
    };
 
    return (
-     <div className="flex items-center justify-center min-h-screen bg-background p-4"> {/* Use background color */}
-       <Card className="w-full max-w-md shadow-lg bg-card border-border"> {/* Use card and border */}
+     <div className="flex items-center justify-center min-h-screen bg-background p-4">
+       <Card className="w-full max-w-md shadow-lg bg-card border-border text-card-foreground">
          <CardHeader className="text-center">
            <div className="flex justify-center items-center mb-4">
              <TrendingUpIcon className="w-12 h-12 text-primary" /> {/* LankaForecaster Logo */}
@@ -82,9 +82,9 @@
                  name="email"
                  render={({ field }) => (
                    <FormItem>
-                     <FormLabel className="text-foreground">Email Address</FormLabel> {/* Use foreground text */}
+                     <FormLabel className="text-foreground">Email Address</FormLabel>
                      <FormControl>
-                       <Input // Using custom Input component
+                       <Input 
                          type="email"
                          placeholder="you@company.com"
                          {...field} 
@@ -100,13 +100,13 @@
                  name="password"
                  render={({ field }) => (
                    <FormItem>
-                     <FormLabel className="text-foreground">Password</FormLabel> {/* Use foreground text */}
+                     <FormLabel className="text-foreground">Password</FormLabel>
                      <FormControl>
                        <Input 
                         type="password"
                         placeholder="********"
                         {...field}
-                        className="bg-input text-foreground border-input" /> {/* Use input styles */}
+                        className="bg-input text-foreground border-input" />
                      </FormControl>
                      <FormMessage />
                    </FormItem>
@@ -118,7 +118,7 @@
              </form>
            </Form>
          </CardContent>
-         <CardFooter className="flex flex-col items-center text-sm space-y-2 pt-4 border-t border-border"> {/* Add border */}
+         <CardFooter className="flex flex-col items-center text-sm space-y-2 pt-4 border-t border-border">
            <p className="text-muted-foreground">
              Don't have an account?{' '}
              <Link href="/signup" className="text-primary hover:underline">
