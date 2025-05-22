@@ -1,23 +1,22 @@
 
-'use server';
 // Enhanced Prediction Algorithm
 
 import { db } from '@/lib/firebase'; // Use the initialized db instance
-import { collection, doc, getDoc } from 'firebase/firestore';
+import { collection, doc, getDoc, getFirestore } from 'firebase/firestore'; // Added getFirestore, collection, doc, getDoc
 
 // Define the structure for historical revenue data consistent with the rest of the app
 export interface HistoricalRevenueDataItem {
-  name: string; // Corresponds to 'date' in the engine's internal naming if needed
+  name: string; // Corresponds to 'date' in the engine's internal naming if needed. Or 'name' as in dashboard.
   revenue: number;
 }
 
+// Match the new EnhancedInputData structure, adapting types where necessary
 export interface EnhancedInputData {
-  // Existing inputs adapted
   historicalRevenue: HistoricalRevenueDataItem[]; // Use the app's consistent naming
   productionCapacity: number;
   marketingSpend: number;
   laborCostIndex: number;
-  companyLifecycleStage: string; // Renamed from lifetimeStage for clarity with engine
+  companyLifecycleStage: string; // 'startup', 'growth', 'maturity', 'decline'
   naturalDisasterLikelihood: 'low' | 'medium' | 'high';
 
   // New enhanced inputs
@@ -37,6 +36,7 @@ export interface EnhancedInputData {
   };
 }
 
+// Updated output schema based on EnhancedPredictionOutput
 export interface EnhancedPredictionOutput {
     predictions: {
         nextMonth: number;
@@ -56,6 +56,7 @@ export interface EnhancedPredictionOutput {
 
 
 export class EnhancedPredictionEngine {
+
   // Main prediction function
   static async generateEnhancedPrediction(inputData: EnhancedInputData): Promise<EnhancedPredictionOutput> {
     try {
@@ -74,10 +75,14 @@ export class EnhancedPredictionEngine {
       // Step 5: Calculate confidence and insights
       const insights = this.generateInsights(adjustedPredictions, features, inputData);
 
+      // Calculate accuracy score - ensure this method exists and returns string
+      const accuracy = this.calculateAccuracyScore(features);
+
+
       return {
         predictions: adjustedPredictions,
         insights: insights,
-        accuracy: this.calculateAccuracyScore(features),
+        accuracy: accuracy,
         recommendations: this.generateRecommendations(features, inputData)
       };
 
@@ -93,9 +98,9 @@ export class EnhancedPredictionEngine {
     const revenue = inputData.historicalRevenue;
     // Ensure revenue is sorted by date if necessary, though typically it's appended.
     // For calculations like growth, order matters. Assuming input is ordered.
-    const latestRevenueRecord = revenue.length > 0 ? revenue[revenue.length - 1] : { revenue: 0 };
+    const latestRevenueRecord = revenue.length > 0 ? revenue[revenue.length - 1] : { name: 'N/A', revenue: 0 }; // Added name property to fallback
     const latestRevenue = latestRevenueRecord.revenue;
-    
+
     return {
       baseRevenue: latestRevenue,
       revenueGrowth: this.calculateGrowthRate(revenue, 6), // Assuming 6 periods (e.g., quarters)
@@ -113,6 +118,8 @@ export class EnhancedPredictionEngine {
 
       overallRiskScore: this.calculateOverallRisk(inputData, externalData),
       dataQualityScore: this.assessDataQuality(inputData),
+
+      // Pass through from input
       companyLifecycleStage: inputData.companyLifecycleStage,
       naturalDisasterLikelihood: inputData.naturalDisasterLikelihood,
       marketingSpend: inputData.marketingSpend,
@@ -154,24 +161,25 @@ export class EnhancedPredictionEngine {
     if (this.isRamadanPeriod()) { // Simplified Ramadan check
       adjustmentFactor *= 0.92;
     }
-    
-    // Lifecycle stage adjustments (example)
-    if (features.companyLifecycleStage === 'startup') adjustmentFactor *= 1.1; // Potential high growth
-    if (features.companyLifecycleStage === 'decline') adjustmentFactor *= 0.9; // Potential decline
+
+    // Lifecycle stage adjustments
+    if (features.companyLifecycleStage === 'startup') adjustmentFactor *= 1.1;
+    if (features.companyLifecycleStage === 'decline') adjustmentFactor *= 0.9;
 
     // Natural disaster likelihood
     if (features.naturalDisasterLikelihood === 'high') adjustmentFactor *= 0.85;
     else if (features.naturalDisasterLikelihood === 'medium') adjustmentFactor *= 0.95;
 
-
-    if (features.exchangeRateImpact > 0.1) { // If exchange rate volatility is high
-      adjustmentFactor *= 0.97; // Slight caution for high volatility
+    // Exchange rate volatility impact
+    if (features.exchangeRateImpact > 0.1) {
+      adjustmentFactor *= 0.97; 
     }
 
+    // Quality impact
     if (features.operationalEfficiency > 90) {
-      adjustmentFactor *= 1.05;
-    } else if (features.operationalEfficiency < 75) {
-      adjustmentFactor *= 0.95;
+      adjustmentFactor *= 1.05; 
+    } else if (features.operationalEfficiency < 75) { 
+      adjustmentFactor *= 0.95; 
     }
 
     // GSP+ trade benefits (example for Sri Lanka)
@@ -182,10 +190,6 @@ export class EnhancedPredictionEngine {
 
     // Labor cost index impact
     if (features.laborCostIndex > 1.1) adjustmentFactor *= 0.98; // Higher labor costs
-    
-    // Production capacity constraint (if prediction exceeds capacity significantly)
-    // This is a complex factor, simplified here. If predicted units based on revenue far exceed capacity, cap or adjust.
-    // For now, this is a general factor.
 
     return {
       nextMonth: Math.max(0, Math.round(predictions.nextMonth * adjustmentFactor)),
@@ -204,7 +208,7 @@ export class EnhancedPredictionEngine {
 
     const avgRevenue = inputData.historicalRevenue.reduce((acc, r) => acc + r.revenue, 0) / inputData.historicalRevenue.length;
     if (avgRevenue <= 0) return 50;
-    
+
     return Math.max(0, Math.min((inputData.confirmedOrdersValue / avgRevenue) * 100, 200));
   }
 
@@ -225,13 +229,15 @@ export class EnhancedPredictionEngine {
     if (inputData.onTimeDeliveryRate) {
       efficiency += (inputData.onTimeDeliveryRate - 90) * 0.3;
     }
-    const historicalRevenues = inputData.historicalRevenue.map(item => item.revenue);
-    const averageHistoricalRevenue = historicalRevenues.length > 0 ? historicalRevenues.reduce((a, b) => a + b, 0) / historicalRevenues.length : 1;
-    // Conceptual: estimate units from revenue if not directly available. Here, we use capacity as a proxy.
-    const maxPossibleRevenueAtCapacity = inputData.productionCapacity * (averageHistoricalRevenue / (inputData.productionCapacity || 1) * 0.5); // very rough estimate
-    const utilizationRate = inputData.productionCapacity > 0 && averageHistoricalRevenue > 0 ? Math.min( (averageHistoricalRevenue / maxPossibleRevenueAtCapacity) * 100, 100) : 70;
 
-    efficiency += (utilizationRate - 70) * 0.2;
+    if (inputData.productionCapacity > 0 && inputData.historicalRevenue.length > 0) {
+        const averageHistoricalRevenue = inputData.historicalRevenue.reduce((sum, item) => sum + item.revenue, 0) / inputData.historicalRevenue.length;
+        const estimatedUnitsSoldLastPeriod = averageHistoricalRevenue / (5000 || 1); // Placeholder: 5000 LKR per unit
+        const utilizationRate = Math.min((estimatedUnitsSoldLastPeriod / inputData.productionCapacity) * 100, 100);
+        efficiency += (utilizationRate - 70) * 0.2;
+    } else {
+        efficiency += (70 - 70) * 0.2; // No change if no capacity or revenue
+    }
     return Math.max(0, Math.min(100, parseFloat(efficiency.toFixed(2)) ) );
   }
 
@@ -245,8 +251,9 @@ export class EnhancedPredictionEngine {
   private static calculateGrowthRate(revenueData: HistoricalRevenueDataItem[], periods: number): number {
     if (revenueData.length < periods + 1) return 0;
     const current = revenueData[revenueData.length - 1]?.revenue || 0;
-    const previous = revenueData[revenueData.length - periods - 1]?.revenue;
-    if (previous === undefined || previous === 0) return 0; // Avoid division by zero or meaningless high growth
+    const previousRecord = revenueData[revenueData.length - periods - 1];
+    if (!previousRecord || previousRecord.revenue === 0) return 0; // Avoid division by zero or meaningless high growth
+    const previous = previousRecord.revenue;
     return parseFloat((((current - previous) / previous) * 100).toFixed(2));
   }
 
@@ -286,17 +293,14 @@ export class EnhancedPredictionEngine {
   private static isRamadanPeriod(): boolean {
     const now = new Date();
     const year = now.getFullYear();
-    // These are very rough approximations for 2024-2025. 
-    // Real implementation needs accurate Hijri conversion.
-    // Example: Ramadan 2024: Mar 10 - Apr 9. Ramadan 2025: Feb 28 - Mar 29
-    const ramadanStart2024 = new Date(year, 2, 10); // Mar 10
-    const ramadanEnd2024 = new Date(year, 3, 9);   // Apr 9
-    const ramadanStart2025 = new Date(year, 1, 28); // Feb 28
-    const ramadanEnd2025 = new Date(year, 2, 29);   // Mar 29
-
-    if (year === 2024 && now >= ramadanStart2024 && now <= ramadanEnd2024) return true;
-    if (year === 2025 && now >= ramadanStart2025 && now <= ramadanEnd2025) return true;
-    // Add more years or use a library
+    const ramadanRanges = {
+        2024: { start: new Date(2024, 2, 10), end: new Date(2024, 3, 9) },
+        2025: { start: new Date(2025, 1, 28), end: new Date(2025, 2, 29) },
+    };
+    const currentYearRange = ramadanRanges[year as keyof typeof ramadanRanges];
+    if (currentYearRange && now >= currentYearRange.start && now <= currentYearRange.end) {
+        return true;
+    }
     return false;
   }
 
@@ -304,9 +308,19 @@ export class EnhancedPredictionEngine {
     let confidence = 85;
     confidence += (features.dataQualityScore - 70) * 0.3;
     confidence -= Math.min(features.revenueVolatility / 2, 15);
-    confidence -= (features.overallRiskScore || 0) * 0.1; // Adjusted weight for overallRiskScore
-    return Math.max(60, Math.min(95, Math.round(confidence))); // Min confidence 60
+    confidence -= (features.overallRiskScore || 0) * 0.1; 
+    return Math.max(60, Math.min(95, Math.round(confidence))); 
   }
+
+  private static calculateAccuracyScore(features: any): string {
+    const confidence = features.confidence || this.calculatePredictionConfidence(features); 
+    const dataQuality = features.dataQualityScore || 70;
+    if (confidence > 85 && dataQuality > 80) return "85-90%";
+    if (confidence > 75 && dataQuality > 70) return "80-85%";
+    if (confidence > 65) return "75-80%";
+    return "70-75%";
+  }
+
 
   private static generateInsights(predictions: any, features: any, inputData: EnhancedInputData): EnhancedPredictionOutput["insights"] {
     return {
@@ -340,7 +354,7 @@ export class EnhancedPredictionEngine {
   private static assessDataQuality(inputData: EnhancedInputData): number {
     let score = 50;
     if (inputData.historicalRevenue.length >= 12) score += 10;
-    if (inputData.historicalRevenue.length >= 24) score += 5; // Reduced points for very long history
+    if (inputData.historicalRevenue.length >= 24) score += 5;
     if (inputData.confirmedOrdersValue && inputData.confirmedOrdersValue > 0) score += 10;
     if (inputData.firstPassQualityRate && inputData.firstPassQualityRate > 0) score += 5;
     if (inputData.onTimeDeliveryRate && inputData.onTimeDeliveryRate > 0) score += 5;
@@ -353,7 +367,6 @@ export class EnhancedPredictionEngine {
     const buyerRisk = inputData.top3BuyersPercentage ? inputData.top3BuyersPercentage / 100 : 0.5;
     const qualityRisk = inputData.firstPassQualityRate ? (100 - inputData.firstPassQualityRate) / 100 : 0.15;
     const exchangeRisk = externalData.exchangeRate ? Math.abs(externalData.exchangeRate - 320) / 320 : 0.05; // Assuming 320 is baseline
-    // Normalize and combine. Max risk score is 100.
     let riskScore = (buyerRisk * 40) + (qualityRisk * 30) + (exchangeRisk * 30);
     return parseFloat(Math.min(100, Math.max(0, riskScore)).toFixed(2));
   }
@@ -366,30 +379,28 @@ export class EnhancedPredictionEngine {
   }
 
   private static calculateRawMaterialImpact(rawMaterialPrices: any): number {
-    // Example: if cotton price is 20% above baseline, impact is 1.2
-    const baselineCottonLKR = 350; // Example baseline
+    const baselineCottonLKR = rawMaterialPrices?.cottonPriceLKR ? 350 : 400; 
     const currentCottonLKR = rawMaterialPrices?.cottonPriceLKR || baselineCottonLKR;
     return parseFloat((currentCottonLKR / baselineCottonLKR).toFixed(2));
   }
 
   private static assessEconomicConditions(economicIndicators: any): number {
-    if (!economicIndicators) return 60; // Neutral-ish default
-    let score = 50; // Base
-    // Example: GDP growth of 2% adds 10 points. Inflation of 5% subtracts 10.
+    if (!economicIndicators) return 60; 
+    let score = 50; 
     score += (economicIndicators.gdpGrowthRate || 0) * 5;
     score -= (economicIndicators.inflationRate || 0) * 2;
-    score += (economicIndicators.exportGrowthRate || 0) * 3; // Export growth is positive
+    score += (economicIndicators.exportGrowthRate || 0) * 3;
     return parseFloat(Math.max(0, Math.min(100, score)).toFixed(2));
   }
 
   private static calculateSeasonality(revenueData: HistoricalRevenueDataItem[]): number {
-    // This is simplified. Real seasonality requires more data and complex analysis (e.g., decomposition).
-    if (revenueData.length < 12) return 1.0; // Not enough data for seasonality
-    return this.getSeasonalFactor(); // Use general garment industry factors
+    if (revenueData.length < 12) return 1.0; // Not enough data
+    return this.getSeasonalFactor();
   }
 
   private static async getExternalData(): Promise<any> {
     try {
+      // const firestore = getFirestore(); // db is already imported globally
       const externalDataRef = doc(db, 'externalData', 'current');
       const docSnap = await getDoc(externalDataRef);
 
@@ -416,7 +427,7 @@ export class EnhancedPredictionEngine {
   private static basicPredictionFallback(inputData: EnhancedInputData): EnhancedPredictionOutput {
     const revenue = inputData.historicalRevenue;
     const latestRevenue = revenue.length > 0 ? revenue[revenue.length - 1]?.revenue || 0 : 0;
-    const growth = this.calculateGrowthRate(revenue, 6); // 6 periods (quarters)
+    const growth = this.calculateGrowthRate(revenue, 6);
 
     const basicPrediction = latestRevenue * (1 + growth / 100);
 
@@ -433,10 +444,15 @@ export class EnhancedPredictionEngine {
         keyDrivers: [{ factor: 'Historical Trend (Fallback)', impact: growth > 0 ? 'Positive' : 'Negative', strength: growth.toFixed(1) + '%' }],
         riskFactors: [{ risk: 'Data Limitation / Prediction Fallback', level: 'High', score: 'N/A' }]
       },
-      accuracy: '65-75%',
+      accuracy: '65-75%', 
       recommendations: ['Enhanced prediction engine encountered an issue. Providing basic trend-based forecast. Review inputs or system logs.']
     };
   }
 }
 
+// Note: The `EnhancedPredictionEngine` class itself is exported,
+// but it is used by the `predictRevenueFlow` which is a 'use server' async function.
+// This means the class methods will run on the server when called by the flow.
+// The export is fine as long as the file itself is not marked 'use server'.
+    
     
