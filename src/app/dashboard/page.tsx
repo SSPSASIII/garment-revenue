@@ -84,7 +84,10 @@ const formSchema = z.object({
     .refine((val) => {
       try {
         const parsed = JSON.parse(val);
-        return Array.isArray(parsed) && parsed.every(item => typeof item === 'object' && item !== null && 'name' in item && typeof item.name === 'string' && 'revenue' in item && typeof item.revenue === 'number');
+        return Array.isArray(parsed) && parsed.every(item => 
+          typeof item === 'object' && item !== null && 
+          'name' in item && typeof item.name === 'string' &&
+          'revenue' in item && typeof item.revenue === 'number');
       } catch (e) { return false; }
     }, { message: "Invalid JSON. Expected array of {name: string, revenue: number (LKR)}." }),
   productionCapacity: z.coerce.number().positive({ message: 'Production capacity must be a positive number.' }),
@@ -93,13 +96,14 @@ const formSchema = z.object({
   companyLifecycleStage: z.enum(['startup', 'growth', 'maturity', 'decline'], { required_error: 'Please select the company lifecycle stage.' }),
   naturalDisasterLikelihood: z.enum(['low', 'medium', 'high'], { required_error: 'Please select natural disaster likelihood.' }),
   
-  confirmedOrdersValue: z.coerce.number().positive({ message: 'Confirmed orders value must be positive.' }).optional().or(z.literal('')),
-  orderBacklog: z.coerce.number().nonnegative({ message: 'Order backlog cannot be negative.' }).optional().or(z.literal('')),
-  top3BuyersPercentage: z.coerce.number().min(0).max(100, { message: 'Must be between 0-100.' }).optional().or(z.literal('')),
-  buyerRetentionRate: z.coerce.number().min(0).max(100, { message: 'Must be between 0-100.' }).optional().or(z.literal('')),
-  firstPassQualityRate: z.coerce.number().min(0).max(100, { message: 'Must be between 0-100.' }).optional().or(z.literal('')),
-  onTimeDeliveryRate: z.coerce.number().min(0).max(100, { message: 'Must be between 0-100.' }).optional().or(z.literal('')),
-  currentExchangeRate: z.coerce.number().positive({ message: 'Exchange rate must be positive.' }).optional().or(z.literal('')),
+  // Optional enhanced fields
+  confirmedOrdersValue: z.string().optional().refine(val => val === '' || !isNaN(parseFloat(val)) && parseFloat(val) >= 0, { message: 'Must be a positive number if provided.'}).transform(val => val === '' ? undefined : Number(val)),
+  orderBacklog: z.string().optional().refine(val => val === '' || !isNaN(parseFloat(val)) && parseFloat(val) >= 0, { message: 'Must be a non-negative number if provided.'}).transform(val => val === '' ? undefined : Number(val)),
+  top3BuyersPercentage: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' ? undefined : Number(val)),
+  buyerRetentionRate: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' ? undefined : Number(val)),
+  firstPassQualityRate: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' ? undefined : Number(val)),
+  onTimeDeliveryRate: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' ? undefined : Number(val)),
+  currentExchangeRate: z.string().optional().refine(val => val === '' || !isNaN(parseFloat(val)) && parseFloat(val) > 0, { message: 'Must be a positive number if provided.'}).transform(val => val === '' ? undefined : Number(val)),
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -113,22 +117,24 @@ export default function DashboardPage() {
   const [chartData, setChartData] = React.useState(defaultHistoricalData);
   const [currentYear, setCurrentYear] = React.useState<string | null>(null);
   
+  // This data is illustrative for the UI snapshot. The engine fetches its own or uses fallbacks.
   const [displayExternalData, setDisplayExternalData] = React.useState({
-      exchangeRate: 300.50, 
-      rawMaterialPrices: { cottonPriceLKR: 405, polyesterPriceLKR: 355, dyeCostIndex: 1.03 },
-      economicIndicators: { gdpGrowthRate: 1.9, inflationRate: 5.2, exportGrowthRate: 4.0, unemploymentRate: 4.8 }
+      exchangeRate: 305.50, 
+      rawMaterialPrices: { cottonPriceLKR: 415, polyesterPriceLKR: 365, dyeCostIndex: 1.04 },
+      economicIndicators: { gdpGrowthRate: 1.9, inflationRate: 5.2, exportGrowthRate: 4.1, unemploymentRate: 4.7 }
   });
 
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      historicalRevenueData: JSON.stringify(defaultHistoricalData.slice(-4), null, 2),
+      historicalRevenueData: JSON.stringify(defaultHistoricalData.slice(-4), null, 2), // Use last 4 quarters
       productionCapacity: 50000,
       marketingSpend: 5000000, // LKR
       laborCostIndex: 1.0,
       companyLifecycleStage: 'growth',
       naturalDisasterLikelihood: 'low',
+      // Optional fields default to empty strings for the form, transformed to undefined by Zod if empty
       confirmedOrdersValue: '', 
       orderBacklog: '',
       top3BuyersPercentage: '',
@@ -147,14 +153,16 @@ export default function DashboardPage() {
 
   React.useEffect(() => {
     setCurrentYear(new Date().getFullYear().toString());
-    console.log("Dashboard using pre-set displayExternalData for UI snapshot. Engine may fetch its own data or use internal fallbacks.");
+    // Note: The displayExternalData is for UI illustration only.
+    // The EnhancedPredictionEngine will attempt to fetch its own live data or use its internal fallbacks.
+    console.log("Dashboard using pre-set displayExternalData for UI snapshot. Engine may fetch/use its own.");
   }, []);
 
   const handleSignOut = async () => {
     try {
       await signOut();
       toast({ title: "Logged Out", description: "You have been successfully logged out."});
-      // AuthContext will handle redirect
+      // AuthContext handles redirect via onAuthStateChanged
     } catch (error) {
       toast({ title: "Logout Error", description: "Failed to log out. Please try again.", variant: "destructive" });
     }
@@ -164,20 +172,21 @@ export default function DashboardPage() {
     setIsLoadingPrediction(true);
     setPrediction(null);
 
+    // `data` is already correctly typed by Zod transformations (empty strings to undefined for optional numbers)
     const flowInput: RevenuePredictionInput = {
-        historicalRevenueData: data.historicalRevenueData,
-        productionCapacity: Number(data.productionCapacity),
-        marketingSpend: Number(data.marketingSpend),
-        laborCostIndex: Number(data.laborCostIndex),
+        historicalRevenueData: data.historicalRevenueData, // This is a string, flow will parse
+        productionCapacity: data.productionCapacity,
+        marketingSpend: data.marketingSpend,
+        laborCostIndex: data.laborCostIndex,
         companyLifecycleStage: data.companyLifecycleStage,
         naturalDisasterLikelihood: data.naturalDisasterLikelihood,
-        confirmedOrdersValue: data.confirmedOrdersValue === '' ? undefined : Number(data.confirmedOrdersValue),
-        orderBacklog: data.orderBacklog === '' ? undefined : Number(data.orderBacklog),
-        top3BuyersPercentage: data.top3BuyersPercentage === '' ? undefined : Number(data.top3BuyersPercentage),
-        buyerRetentionRate: data.buyerRetentionRate === '' ? undefined : Number(data.buyerRetentionRate),
-        firstPassQualityRate: data.firstPassQualityRate === '' ? undefined : Number(data.firstPassQualityRate),
-        onTimeDeliveryRate: data.onTimeDeliveryRate === '' ? undefined : Number(data.onTimeDeliveryRate),
-        currentExchangeRate: data.currentExchangeRate === '' ? undefined : Number(data.currentExchangeRate),
+        confirmedOrdersValue: data.confirmedOrdersValue, // Already number | undefined
+        orderBacklog: data.orderBacklog, // Already number | undefined
+        top3BuyersPercentage: data.top3BuyersPercentage, // Already number | undefined
+        buyerRetentionRate: data.buyerRetentionRate, // Already number | undefined
+        firstPassQualityRate: data.firstPassQualityRate, // Already number | undefined
+        onTimeDeliveryRate: data.onTimeDeliveryRate, // Already number | undefined
+        currentExchangeRate: data.currentExchangeRate, // Already number | undefined
     };
     
     try {
@@ -195,21 +204,22 @@ export default function DashboardPage() {
       setPrediction(result);
 
       try {
+        // Create a clean object for Firestore, removing undefined properties
         const inputForFirestore: Record<string, any> = {};
         for (const key in flowInput) {
           if (Object.prototype.hasOwnProperty.call(flowInput, key)) {
             const value = flowInput[key as keyof RevenuePredictionInput];
-            if (value !== undefined) {
+            if (value !== undefined) { // Only add defined values to Firestore
               inputForFirestore[key] = value;
             }
           }
         }
         
         await addDoc(collection(db, "predictionsEnhanced"), {
-            input: inputForFirestore,
+            input: inputForFirestore, // Use the cleaned input object
             output: result,
             predictionTimestamp: new Date(),
-            userId: user?.uid || 'unknown' // Add user ID if available
+            userId: user?.uid || 'unknown' 
         });
         console.log("Enhanced prediction data saved to Firestore.");
       } catch (error: unknown) {
@@ -226,7 +236,7 @@ export default function DashboardPage() {
         if (match) {
           let q = parseInt(match[1], 10);
           let y = parseInt(match[2], 10);
-          let fy = y < 50 ? 2000 + y : (y < 100 ? 1900 + y : y);
+          let fy = y < 50 ? 2000 + y : (y < 100 ? 1900 + y : y); // Handle 2-digit years
           q === 4 ? (q = 1, fy += 1) : q += 1;
           nextQuarterLabel = `Q${q} '${fy.toString().slice(-2)} (Pred.)`;
         }
@@ -268,6 +278,7 @@ export default function DashboardPage() {
 
       <main className="flex-grow container mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-8">
+          {/* Current Snapshot Card - Illustrative Data */}
           <Card className="shadow-md border-border">
              <CardHeader>
                <CardTitle className="flex items-center gap-2"><Globe className="text-primary" />Current Snapshot (Illustrative)</CardTitle>
@@ -283,6 +294,7 @@ export default function DashboardPage() {
              </CardContent>
           </Card>
 
+          {/* Revenue Trend & Forecast Chart */}
           <Card className="shadow-md border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><BarChart2 className="text-primary" />Revenue Trend & Forecast</CardTitle>
@@ -305,6 +317,7 @@ export default function DashboardPage() {
             </CardContent>
           </Card>
 
+          {/* Enhanced Prediction Analysis Section */}
           <Card className="shadow-md border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><BrainCircuit className="text-primary" />Enhanced Prediction Analysis</CardTitle>
@@ -380,8 +393,9 @@ export default function DashboardPage() {
           </Card>
         </div>
 
+        {/* Input Form Section */}
         <div className="lg:col-span-1">
-          <Card className="shadow-md sticky top-24 border-border bg-card">
+          <Card className="shadow-md sticky top-24 border-border bg-card"> {/* Sticky for better UX */}
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><Briefcase className="text-primary"/>Enhanced Prediction Input</CardTitle>
               <CardDescription>Provide detailed company data for the advanced forecast.</CardDescription>
@@ -411,24 +425,24 @@ export default function DashboardPage() {
                         <FormField control={form.control} name="naturalDisasterLikelihood" render={({ field }) => (
                           <FormItem><FormLabel className="flex items-center gap-1"><CloudRain className="w-4 h-4"/>Nat. Disaster Likelihood (Next Q)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                          <FormField control={form.control} name="currentExchangeRate" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4"/>Current LKR/USD Rate (Optional)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 300.50" {...field} /></FormControl><FormDescription className="text-xs">Overrides engine's default/fetched if provided.</FormDescription><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4"/>Current LKR/USD Rate (Optional)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 300.50" {...field} value={field.value ?? ''} /></FormControl><FormDescription className="text-xs">Overrides engine's default/fetched if provided.</FormDescription><FormMessage /></FormItem>)} />
                       </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="enhanced-inputs">
                       <AccordionTrigger className="font-semibold hover:no-underline text-base">Enhanced Metrics (Optional)</AccordionTrigger>
                       <AccordionContent className="pt-2 space-y-4">
                         <FormField control={form.control} name="confirmedOrdersValue" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><ShoppingCart className="w-4 h-4"/>Confirmed Orders Value (LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 250000000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><ShoppingCart className="w-4 h-4"/>Confirmed Orders Value (LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 250000000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="orderBacklog" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><FileText className="w-4 h-4"/>Order Backlog Value (LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 50000000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><FileText className="w-4 h-4"/>Order Backlog Value (LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 50000000" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="top3BuyersPercentage" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><Target className="w-4 h-4"/>Revenue % from Top 3 Buyers</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 65" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><Target className="w-4 h-4"/>Revenue % from Top 3 Buyers</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 65" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="buyerRetentionRate" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><Users className="w-4 h-4"/>Buyer Retention Rate (%)</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 80" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><Users className="w-4 h-4"/>Buyer Retention Rate (%)</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 80" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="firstPassQualityRate" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><Star className="w-4 h-4"/>First Pass Quality Rate (%)</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 92" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><Star className="w-4 h-4"/>First Pass Quality Rate (%)</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 92" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="onTimeDeliveryRate" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><CheckCircle className="w-4 h-4"/>On-Time Delivery Rate (%)</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 95" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><CheckCircle className="w-4 h-4"/>On-Time Delivery Rate (%)</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 95" {...field} value={field.value ?? ''} /></FormControl><FormMessage /></FormItem>)} />
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
