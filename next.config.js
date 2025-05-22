@@ -20,6 +20,12 @@ const nextConfig = {
         hostname: 'placehold.co',
         port: '',
         pathname: '/**',
+      },
+      {
+        protocol: 'https',
+        hostname: 'altline.sobanco.com',
+        port: '',
+        pathname: '/**',
       }
     ],
   },

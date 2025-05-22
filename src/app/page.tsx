@@ -58,11 +58,10 @@ export default function LandingPage() {
             </div>
             <div className="mt-16 relative aspect-[16/7] max-w-5xl mx-auto rounded-xl overflow-hidden shadow-2xl border-2 border-primary/30">
               <Image
-                src="https://placehold.co/1280x560.png"
-                alt="LankaForecaster Dashboard Mockup - Garment Factory"
+                src="https://altline.sobanco.com/wp-content/uploads/2023/04/revenue.jpg"
+                alt="Revenue and Growth Chart for Garment Industry"
                 layout="fill"
                 objectFit="cover"
-                data-ai-hint="garment factory"
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"></div>
