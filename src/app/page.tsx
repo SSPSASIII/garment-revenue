@@ -1,8 +1,9 @@
+
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
-import { TrendingUpIcon, BarChartIcon, DollarSignIcon, Zap, BrainCircuit, ShieldCheck } from 'lucide-react'; // Added Zap, BrainCircuit, ShieldCheck
+import { TrendingUpIcon, BarChartIcon, DollarSignIcon, Zap, BrainCircuit, ShieldCheck } from 'lucide-react';
 
 export default function LandingPage() {
   return (
@@ -34,7 +35,7 @@ export default function LandingPage() {
       <main className="flex-grow">
         {/* Hero Section */}
         <section className="relative py-24 md:py-32 bg-card border-b border-border">
-          <div className="absolute inset-0 opacity-5" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg width='52' height='26' viewBox='0 0 52 26' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23ff0000' fill-opacity='0.4'%3E%3Cpath d='M10 10c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zm25.464-1.95l8.486 8.486-1.414 1.414-8.486-8.486 1.414-1.414z' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`}}></div>
+          <div className="absolute inset-0 opacity-5" style={{backgroundImage: `url("data:image/svg+xml,%3Csvg width='52' height='26' viewBox='0 0 52 26' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill-rule='evenodd'%3E%3Cg fill='%23007bff' fill-opacity='0.4'%3E%3Cpath d='M10 10c0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6h2c0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4 3.314 0 6 2.686 6 6 0 2.21 1.79 4 4 4v2c-3.314 0-6-2.686-6-6 0-2.21-1.79-4-4-4-3.314 0-6-2.686-6-6zm25.464-1.95l8.486 8.486-1.414 1.414-8.486-8.486 1.414-1.414z' /%3E%3C/g%3E%3C/g%3E%3C/svg%3E")`}}></div>
           <div className="container mx-auto px-6 text-center relative">
             <h1 className="text-4xl md:text-6xl font-extrabold mb-6 text-primary leading-tight">
               Navigate Sri Lanka's Garment Industry with AI Precision
@@ -58,10 +59,10 @@ export default function LandingPage() {
             <div className="mt-16 relative aspect-[16/7] max-w-5xl mx-auto rounded-xl overflow-hidden shadow-2xl border-2 border-primary/30">
               <Image
                 src="https://placehold.co/1280x560.png"
-                alt="LankaForecaster Dashboard Mockup"
+                alt="LankaForecaster Dashboard Mockup - Garment Factory"
                 layout="fill"
                 objectFit="cover"
-                data-ai-hint="dashboard analytics chart"
+                data-ai-hint="garment factory"
                 priority
               />
               <div className="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"></div>
