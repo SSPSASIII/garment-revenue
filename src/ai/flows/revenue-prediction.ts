@@ -1,6 +1,7 @@
+
 'use server';
 /**
- * @fileOverview Revenue prediction flow for the Sri Lankan garment industry, enhanced with lifetime steps, natural disaster considerations, marketing spend, and labor cost index.
+ * @fileOverview Revenue prediction flow using the EnhancedPredictionEngine.
  *
  * - predictRevenue - A function that predicts future revenue trends in LKR.
  * - RevenuePredictionInput - The input type for the predictRevenue function.
@@ -9,12 +10,15 @@
 
 import {ai} from '@/ai/ai-instance';
 import {z} from 'genkit';
-import {getEconomicIndicators} from '@/services/economy';
-import {getMarketSignals} from '@/services/market';
-import {getApiKeys, getRateLimitStatus} from '@/services/api-manager'; // Import API related services
-import { APIErrorHandler } from '@/services/error-handler'; // Import error handler
+import { 
+  EnhancedPredictionEngine, 
+  type EnhancedInputData, 
+  type EnhancedPredictionOutput,
+  type HistoricalRevenueDataItem
+} from '@/lib/enhanced-prediction-engine';
+import { APIErrorHandler } from '@/services/error-handler';
 
-
+// Match the new EnhancedInputData structure, adapting types where necessary (e.g., JSON string to object array)
 const RevenuePredictionInputSchema = z.object({
   historicalRevenueData: z
     .string()
@@ -24,156 +28,122 @@ const RevenuePredictionInputSchema = z.object({
   productionCapacity: z.number().positive().describe('Current production capacity in units per quarter.'),
   marketingSpend: z.number().nonnegative().describe('Marketing spend in the last quarter (LKR).'),
   laborCostIndex: z.number().positive().describe('Index representing labor cost trend (1.0 = average).'),
-  additionalContext: z.string().optional().describe('Optional user-provided context, like new clients, policy changes, or operational issues.'),
-  lifetimeStage: z.enum(['startup', 'growth', 'maturity', 'decline']).describe('The current stage of the company lifecycle.'),
-  naturalDisasterLikelihood: z.enum(['low', 'medium', 'high']).describe('The likelihood of a natural disaster impacting operations in the next quarter.')
+  companyLifecycleStage: z.enum(['startup', 'growth', 'maturity', 'decline'], { required_error: "Company lifecycle stage is required."}).describe('The current stage of the company lifecycle.'),
+  naturalDisasterLikelihood: z.enum(['low', 'medium', 'high'], { required_error: "Natural disaster likelihood is required."}).describe('The likelihood of a natural disaster impacting operations in the next quarter.'),
+  
+  // New enhanced inputs from EnhancedInputData
+  confirmedOrdersValue: z.number().positive().optional().describe('Total value of confirmed orders for the next period (LKR).'),
+  orderBacklog: z.number().nonnegative().optional().describe('Value of pending or backlogged orders (LKR).'),
+  top3BuyersPercentage: z.number().min(0).max(100).optional().describe('Percentage of revenue from top 3 buyers (0-100).'),
+  buyerRetentionRate: z.number().min(0).max(100).optional().describe('Annual buyer retention rate (0-100%).'),
+  firstPassQualityRate: z.number().min(0).max(100).optional().describe('First pass yield / quality rate (0-100%).'),
+  onTimeDeliveryRate: z.number().min(0).max(100).optional().describe('On-time delivery performance rate (0-100%).'),
+  currentExchangeRate: z.number().positive().optional().describe('Current LKR per USD exchange rate (e.g., 320.50).'),
+  additionalContext: z.string().optional().describe('Optional user-provided context (Note: Enhanced engine does not use this directly).'),
 });
 export type RevenuePredictionInput = z.infer<typeof RevenuePredictionInputSchema>;
 
+
+// Updated output schema based on EnhancedPredictionOutput
 const RevenuePredictionOutputSchema = z.object({
-  predictedRevenue: z
-    .number()
-    .describe('The predicted revenue for the next quarter in Sri Lankan Rupees (LKR).'),
-  trendAnalysis: z
-    .string()
-    .describe(
-      'A detailed analysis of the revenue trend, explaining the key factors (historical data, economic indicators, market signals, context, lifetime stage, natural disaster likelihood, marketing, labor costs) influencing the prediction and the reasoning behind the forecast.'
-    ),
-  riskFactors: z
-    .string()
-    .describe(
-      'Potential risk factors that could negatively impact the predicted revenue, such as economic downturns, supply chain disruptions, changes in trade policies, competitor actions, stage of lifecycle, natural disasters, marketing effectiveness, or labor cost surges.'
-    ),
-  confidenceScore: z.number().min(0).max(1).describe('A score between 0 and 1 indicating the confidence level of the prediction (0 = low, 1 = high).')
+    predictions: z.object({
+        nextMonth: z.number().describe("Predicted revenue for the next month in LKR."),
+        nextQuarter: z.number().describe("Predicted revenue for the next quarter in LKR."),
+        nextSixMonths: z.number().describe("Predicted revenue for the next six months in LKR."),
+        nextYear: z.number().describe("Predicted revenue for the next year in LKR."),
+        confidence: z.number().min(0).max(100).describe("Prediction confidence score (0-100)."), // Engine returns 0-100
+        adjustmentFactor: z.number().describe("Factor applied for industry-specific adjustments."),
+    }),
+    insights: z.object({
+        keyDrivers: z.array(z.object({
+            factor: z.string(),
+            impact: z.string(),
+            strength: z.any(), // Can be number or string
+        })).describe("Key drivers influencing the prediction."),
+        riskFactors: z.array(z.object({
+            risk: z.string(),
+            level: z.string(),
+            score: z.any(), // Can be number or string
+        })).describe("Potential risk factors identified."),
+    }),
+    accuracy: z.string().describe("Estimated accuracy of the prediction model (e.g., '80-85%')."),
+    recommendations: z.array(z.string()).describe("Actionable recommendations based on the prediction."),
 });
 export type RevenuePredictionOutput = z.infer<typeof RevenuePredictionOutputSchema>;
+
 
 export async function predictRevenue(
   input: RevenuePredictionInput
 ): Promise<RevenuePredictionOutput> {
+  // This function now directly calls the predictRevenueFlow
   return predictRevenueFlow(input);
 }
 
-const prompt = ai.definePrompt({
-  name: 'revenuePredictionPrompt',
-  input: {
-    schema: z.object({
-      historicalRevenueData: z
-        .string()
-        .describe(
-          'Historical quarterly revenue data in LKR, as a JSON string.'
-        ),
-      productionCapacity: z.number().describe('Current production capacity in units per quarter.'),
-      marketingSpend: z.number().nonnegative().describe('Marketing spend in the last quarter (LKR).'),
-      laborCostIndex: z.number().positive().describe('Index representing labor cost trend (1.0 = average).'),
-      additionalContext: z.string().optional().describe('Optional user-provided context.'),
-      gdpGrowthRate: z.number().describe('Sri Lankan GDP growth rate (%).'),
-      inflationRate: z.number().describe('Sri Lankan inflation rate (%).'),
-      unemploymentRate: z.number().describe('Sri Lankan unemployment rate (%).'),
-      exchangeRate: z.number().describe('Current USD to LKR exchange rate.'),
-      demand: z.number().describe('Index representing demand for garments in key export markets (e.g., EU, US). Higher value means higher demand.'),
-      rawMaterialPrices: z.number().describe('Index representing price trends for raw materials like cotton and synthetic fabrics. Higher value means higher cost.'),
-      tradeConditions: z.string().describe('Summary of current trade agreements, tariffs, and political stability affecting exports.'),
-      lifetimeStage: z.string().describe('The current stage of the company lifecycle (startup, growth, maturity, decline).'),
-      naturalDisasterLikelihood: z.string().describe('The likelihood of a natural disaster impacting operations in the next quarter (low, medium, high).'),
-    }),
-  },
-  output: {
-    schema: RevenuePredictionOutputSchema, // Use the refined output schema
-  },
-  prompt: `You are an expert financial analyst specializing in predicting revenue for the Sri Lankan garment industry. Your goal is to provide the most accurate forecast possible in Sri Lankan Rupees (LKR) for the next quarter.
 
-Analyze the following company-specific data:
-Historical Revenue Data (LKR): {{{historicalRevenueData}}}
-Production Capacity (Units/Quarter): {{{productionCapacity}}}
-Marketing Spend (Last Quarter, LKR): {{{marketingSpend}}}
-Labor Cost Index (1.0 = avg): {{{laborCostIndex}}}
-Company Lifecycle Stage: {{{lifetimeStage}}}
-{{#if additionalContext}}
-Additional Context: {{{additionalContext}}}
-{{/if}}
-
-Incorporate these macroeconomic indicators for Sri Lanka:
-GDP Growth Rate: {{{gdpGrowthRate}}}%
-Inflation Rate: {{{inflationRate}}}%
-Unemployment Rate: {{{unemploymentRate}}}%
-USD to LKR Exchange Rate: {{{exchangeRate}}}
-
-Consider these market signals specific to the garment industry:
-Export Market Demand Index: {{{demand}}}
-Raw Material Price Index: {{{rawMaterialPrices}}}
-Trade Conditions: {{{tradeConditions}}}
-
-Assess the potential impact of natural disasters:
-Natural Disaster Likelihood: {{{naturalDisasterLikelihood}}}
-
-Based on a thorough analysis of all the provided information, perform the following:
-1.  **Predict Revenue:** Forecast the revenue for the **next quarter** in **Sri Lankan Rupees (LKR)**.
-2.  **Analyze Trend:** Provide a detailed analysis explaining the prediction. Discuss how historical trends, production capacity, marketing spend, labor costs, economic factors (GDP, inflation, unemployment, exchange rate), market signals (demand, material costs, trade), the company's lifecycle stage, the likelihood of natural disasters, and any provided context contribute to the forecast. Explain your reasoning clearly. Consider seasonality if evident in historical data.
-3.  **Identify Risks:** Outline potential risk factors that could negatively impact this revenue prediction. Be specific (e.g., "A sudden increase in cotton prices by over 10%", "New import tariffs imposed by the EU", "Domestic political instability affecting production", "High chance of flooding disrupting supply chains", "Marketing campaign underperformance", "Unexpected rise in labor wages").
-4.  **Estimate Confidence:** Provide a confidence score between 0.0 and 1.0 for your prediction, where 1.0 represents very high confidence. Justify this score briefly within the trend analysis.
-
-Output ONLY the JSON object conforming to the specified output schema. Do not include any introductory text, apologies, or explanations outside the JSON structure. Ensure the predicted revenue is a number representing LKR.
-`,
-});
-
-const predictRevenueFlow = ai.defineFlow<
-  typeof RevenuePredictionInputSchema,
-  typeof RevenuePredictionOutputSchema
->(
+// This Genkit flow now uses the EnhancedPredictionEngine
+const predictRevenueFlow = ai.defineFlow(
   {
     name: 'predictRevenueFlow',
     inputSchema: RevenuePredictionInputSchema,
-    outputSchema: RevenuePredictionOutputSchema,
+    outputSchema: RevenuePredictionOutputSchema, // Use the new output schema
   },
-  async (input) => {
+  async (flowInput: RevenuePredictionInput): Promise<RevenuePredictionOutput> => {
     try {
-        // Example: Check rate limits before proceeding (conceptual)
-        const limitStatus = await getRateLimitStatus('central_bank'); // Assume this checks CBSL limit
-        if (limitStatus && limitStatus.remaining <= 0) {
-            throw new Error('Rate limit exceeded for Central Bank API. Please wait.');
+      // 1. Parse historicalRevenueData from JSON string to Array of objects
+      let parsedHistoricalRevenue: HistoricalRevenueDataItem[];
+      try {
+        parsedHistoricalRevenue = JSON.parse(flowInput.historicalRevenueData);
+        // Basic validation for the parsed data structure
+        if (!Array.isArray(parsedHistoricalRevenue) || 
+            !parsedHistoricalRevenue.every(item => 
+              typeof item === 'object' && item !== null && 
+              'name' in item && typeof item.name === 'string' &&
+              'revenue' in item && typeof item.revenue === 'number'
+            )
+           ) {
+          throw new Error('Invalid historical revenue data format. Expected array of {name: string, revenue: number}.');
         }
+      } catch (e: any) {
+        console.error("Error parsing historicalRevenueData:", e.message);
+        throw new Error(`Invalid historical revenue data JSON: ${e.message}`);
+      }
 
-        // Fetch real-time or more granular data using the services
-        const economicIndicators = await getEconomicIndicators();
-        const marketSignals = await getMarketSignals();
+      // 2. Map flowInput to EnhancedInputData structure
+      const engineInput: EnhancedInputData = {
+        historicalRevenue: parsedHistoricalRevenue, // Already parsed
+        productionCapacity: flowInput.productionCapacity,
+        marketingSpend: flowInput.marketingSpend,
+        laborCostIndex: flowInput.laborCostIndex,
+        companyLifecycleStage: flowInput.companyLifecycleStage,
+        naturalDisasterLikelihood: flowInput.naturalDisasterLikelihood,
+        
+        // New fields (optional, so they can be undefined if not provided by form)
+        confirmedOrdersValue: flowInput.confirmedOrdersValue,
+        orderBacklog: flowInput.orderBacklog,
+        top3BuyersPercentage: flowInput.top3BuyersPercentage,
+        buyerRetentionRate: flowInput.buyerRetentionRate,
+        firstPassQualityRate: flowInput.firstPassQualityRate,
+        onTimeDeliveryRate: flowInput.onTimeDeliveryRate,
+        currentExchangeRate: flowInput.currentExchangeRate,
+        // Note: 'additionalContext' from flowInput is not directly used by EnhancedPredictionEngine.
+        // It could be logged or processed separately if needed.
+      };
 
-        const { output } = await prompt({
-          historicalRevenueData: input.historicalRevenueData,
-          productionCapacity: input.productionCapacity,
-          marketingSpend: input.marketingSpend,
-          laborCostIndex: input.laborCostIndex,
-          additionalContext: input.additionalContext,
-          gdpGrowthRate: economicIndicators.gdpGrowthRate,
-          inflationRate: economicIndicators.inflationRate,
-          unemploymentRate: economicIndicators.unemploymentRate,
-          exchangeRate: economicIndicators.exchangeRate,
-          demand: marketSignals.demand,
-          rawMaterialPrices: marketSignals.rawMaterialPrices,
-          tradeConditions: marketSignals.tradeConditions,
-          lifetimeStage: input.lifetimeStage,
-          naturalDisasterLikelihood: input.naturalDisasterLikelihood,
-        });
-
-        if (!output) {
-            throw new Error("AI failed to generate a prediction.");
-        }
-
-        // Basic validation (optional, as Zod schema handles structure)
-        if (typeof output.predictedRevenue !== 'number' || typeof output.confidenceScore !== 'number') {
-            console.error("Invalid output format from AI:", output);
-            throw new Error("Received invalid prediction format from AI.");
-        }
-
-        return output;
+      // 3. Call the EnhancedPredictionEngine
+      const result: EnhancedPredictionOutput = await EnhancedPredictionEngine.generateEnhancedPrediction(engineInput);
+      
+      // 4. Return the result (it should match the new RevenuePredictionOutputSchema)
+      // No complex mapping needed if EnhancedPredictionOutput and RevenuePredictionOutputSchema are aligned.
+      return result;
 
     } catch (error: unknown) {
-        // Use the central error handler
-        const errorMessage = APIErrorHandler.handleApiError(error);
-        console.error("Error during predictRevenueFlow:", errorMessage);
-        // Re-throw a more user-friendly error or return a specific error structure
-        // For now, re-throwing to be caught by the caller (e.g., the dashboard page)
-        throw new Error(`Prediction failed: ${errorMessage}`);
+      const errorMessage = APIErrorHandler.handleApiError(error);
+      console.error("Error during predictRevenueFlow (Enhanced Engine):", errorMessage, error);
+      // Re-throw a more user-friendly error or return a specific error structure
+      // This will be caught by the dashboard page's error handling
+      throw new Error(`Prediction failed: ${errorMessage}`);
     }
   }
 );
+
+    
