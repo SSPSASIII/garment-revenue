@@ -1,12 +1,12 @@
 // src/lib/firebase.ts
-import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
-import { getFirestore, connectFirestoreEmulator, Firestore } from 'firebase/firestore';
+import { initializeApp, getApps, getApp, type FirebaseApp } from 'firebase/app';
+import { getFirestore, connectFirestoreEmulator, type Firestore } from 'firebase/firestore';
+import { getAuth, connectAuthEmulator, type Auth } from 'firebase/auth'; // Import getAuth and connectAuthEmulator
 import dotenv from 'dotenv';
 
 dotenv.config(); // Load environment variables from .env file
 
 // Your web app's Firebase configuration
-// For Firebase JS SDK v7.20.0 and later, measurementId is optional
 const firebaseConfig = {
   apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
   authDomain: process.env.NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN,
@@ -25,21 +25,20 @@ if (!getApps().length) {
 }
 
 const db: Firestore = getFirestore(app);
+const auth: Auth = getAuth(app); // Initialize Firebase Auth
 
-// Connect to Firestore emulator if in development environment
-// Make sure the emulator is running (e.g., using `firebase emulators:start`)
+// Connect to emulators if in development environment
 if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true') {
   try {
     console.log("Connecting to Firestore emulator on localhost:8080");
     connectFirestoreEmulator(db, 'localhost', 8080);
+    console.log("Connecting to Auth emulator on localhost:9099");
+    connectAuthEmulator(auth, 'http://localhost:9099'); // Connect Auth emulator
   } catch (error) {
-    console.error("Error connecting to Firestore emulator:", error);
-    // Handle the error appropriately, maybe log it or show a warning
-    // You might want to proceed without the emulator connection in case of error
+    console.error("Error connecting to Firebase emulators:", error);
   }
 } else if (process.env.NODE_ENV === 'development') {
     console.log("Firebase Emulator not explicitly enabled. Skipping emulator connection. Set NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true in .env to enable it.");
 }
 
-
-export { db, app };
+export { db, auth, app }; // Export auth instance

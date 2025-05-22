@@ -28,7 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { predictRevenue, type RevenuePredictionOutput, type RevenuePredictionInput } from '@/ai/flows/revenue-prediction';
 import { useToast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, AlertTriangle, Info, Activity, AlertCircle, Percent, DollarSign, Globe, Factory, CloudRain, Anchor, CalendarDays, BarChart2, BrainCircuit, Megaphone, Users, CheckCircle, ShoppingCart, FileText, Star, Briefcase, Target, HelpCircle, Sigma, TrendingDown } from 'lucide-react';
+import { Loader2, TrendingUp, AlertTriangle, Info, Activity, AlertCircle, Percent, DollarSign, Globe, Factory, CloudRain, Anchor, CalendarDays, BarChart2, BrainCircuit, Megaphone, Users, CheckCircle, ShoppingCart, FileText, Star, Briefcase, Target, HelpCircle, Sigma, TrendingDown, LogOut } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -49,6 +49,8 @@ import {
   AccordionItem,
   AccordionTrigger,
 } from "@/components/ui/accordion"
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'next/navigation';
 
 
 // Default historical data (can be overridden by user input)
@@ -104,6 +106,8 @@ type FormValues = z.infer<typeof formSchema>;
 
 export default function DashboardPage() {
   const { toast } = useToast();
+  const { user, loading: authLoading, signOut } = useAuth();
+  const router = useRouter();
   const [prediction, setPrediction] = React.useState<RevenuePredictionOutput | null>(null);
   const [isLoadingPrediction, setIsLoadingPrediction] = React.useState(false);
   const [chartData, setChartData] = React.useState(defaultHistoricalData);
@@ -136,10 +140,25 @@ export default function DashboardPage() {
   });
 
   React.useEffect(() => {
+    if (!authLoading && !user) {
+      router.push('/login');
+    }
+  }, [user, authLoading, router]);
+
+  React.useEffect(() => {
     setCurrentYear(new Date().getFullYear().toString());
-    // Mock fetch for display; engine handles its own data or uses internal fallbacks.
     console.log("Dashboard using pre-set displayExternalData for UI snapshot. Engine may fetch its own data or use internal fallbacks.");
   }, []);
+
+  const handleSignOut = async () => {
+    try {
+      await signOut();
+      toast({ title: "Logged Out", description: "You have been successfully logged out."});
+      // AuthContext will handle redirect
+    } catch (error) {
+      toast({ title: "Logout Error", description: "Failed to log out. Please try again.", variant: "destructive" });
+    }
+  };
 
   const onSubmit = async (data: FormValues) => {
     setIsLoadingPrediction(true);
@@ -176,19 +195,21 @@ export default function DashboardPage() {
       setPrediction(result);
 
       try {
-        // Create a new object for Firestore that doesn't include undefined values
-        const inputForFirestore: Partial<RevenuePredictionInput> = {};
-        for (const key of Object.keys(flowInput) as Array<keyof RevenuePredictionInput>) {
-          if (flowInput[key] !== undefined) {
-            // Type assertion to satisfy TypeScript when assigning to a Partial object
-            (inputForFirestore[key] as any) = flowInput[key];
+        const inputForFirestore: Record<string, any> = {};
+        for (const key in flowInput) {
+          if (Object.prototype.hasOwnProperty.call(flowInput, key)) {
+            const value = flowInput[key as keyof RevenuePredictionInput];
+            if (value !== undefined) {
+              inputForFirestore[key] = value;
+            }
           }
         }
         
         await addDoc(collection(db, "predictionsEnhanced"), {
-            input: inputForFirestore, // Use the cleaned input object
+            input: inputForFirestore,
             output: result,
-            predictionTimestamp: new Date()
+            predictionTimestamp: new Date(),
+            userId: user?.uid || 'unknown' // Add user ID if available
         });
         console.log("Enhanced prediction data saved to Firestore.");
       } catch (error: unknown) {
@@ -205,7 +226,7 @@ export default function DashboardPage() {
         if (match) {
           let q = parseInt(match[1], 10);
           let y = parseInt(match[2], 10);
-          let fy = y < 50 ? 2000 + y : (y < 100 ? 1900 + y : y); // Handle 2-digit and 4-digit years
+          let fy = y < 50 ? 2000 + y : (y < 100 ? 1900 + y : y);
           q === 4 ? (q = 1, fy += 1) : q += 1;
           nextQuarterLabel = `Q${q} '${fy.toString().slice(-2)} (Pred.)`;
         }
@@ -222,6 +243,15 @@ export default function DashboardPage() {
     }
   };
 
+  if (authLoading || !user) {
+    return (
+      <div className="flex items-center justify-center min-h-screen bg-background">
+        <Loader2 className="w-12 h-12 text-primary animate-spin" />
+        <p className="ml-4 text-muted-foreground">Loading dashboard...</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex flex-col min-h-screen bg-background text-foreground">
       <header className="bg-card shadow-sm sticky top-0 z-10 border-b border-border">
@@ -229,7 +259,10 @@ export default function DashboardPage() {
           <h1 className="text-xl font-semibold text-primary flex items-center gap-2">
             <TrendingUp className="w-6 h-6" /> LankaForecaster Pro
           </h1>
-          <Button variant="outline" size="sm">Logout</Button>
+          <Button variant="outline" size="sm" onClick={handleSignOut} disabled={authLoading}>
+            {authLoading ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <LogOut className="mr-2 h-4 w-4" />}
+             Logout
+          </Button>
         </div>
       </header>
 
@@ -421,4 +454,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
