@@ -14,6 +14,7 @@ import {
 import {
   Form,
   FormControl,
+  FormDescription,
   FormField,
   FormItem,
   FormLabel,
@@ -480,9 +481,9 @@ export default function DashboardPage() {
                             {...field}
                           />
                         </FormControl>
-                         <p className="text-xs text-muted-foreground flex items-start gap-1 pt-1">
+                         <FormDescription className="text-xs flex items-start gap-1 pt-1">
                             <AlertCircle className="w-3 h-3 mt-0.5 flex-shrink-0" /> Format: Array of {"{name: 'Qx YY', revenue: number (LKR)}"}
-                         </p>
+                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}
@@ -580,9 +581,9 @@ export default function DashboardPage() {
                         <FormControl>
                           <Textarea placeholder="e.g., Major new client, regulatory changes, factory downtime..." {...field} className="min-h-[80px] resize-y bg-input text-foreground border-border" />
                         </FormControl>
-                         <p className="text-xs text-muted-foreground pt-1">
+                         <FormDescription className="text-xs pt-1">
                             Relevant factors not captured elsewhere (market shifts, internal issues).
-                         </p>
+                         </FormDescription>
                         <FormMessage />
                       </FormItem>
                     )}

@@ -26,6 +26,7 @@
  import { Input } from '@/components/ui/input';
  import { useToast } from '@/hooks/use-toast';
  import { useRouter } from 'next/navigation'; // Use next/navigation for App Router
+ import { TrendingUpIcon } from 'lucide-react'; // Added TrendingUpIcon
 
  const formSchema = z.object({
    email: z.string().email({ message: 'Invalid email address.' }),
@@ -53,6 +54,7 @@
      toast({
        title: 'Login Successful!',
        description: 'Redirecting to your dashboard...',
+       variant: 'default', // Use default toast for success
      });
 
      // Redirect to dashboard after a short delay
@@ -62,11 +64,14 @@
    };
 
    return (
-     <div className="flex items-center justify-center min-h-screen bg-secondary p-4">
-       <Card className="w-full max-w-md shadow-lg">
+     <div className="flex items-center justify-center min-h-screen bg-background p-4"> {/* Use background color */}
+       <Card className="w-full max-w-md shadow-lg bg-card border-border"> {/* Use card and border */}
          <CardHeader className="text-center">
-           <CardTitle className="text-2xl font-bold text-primary">Welcome Back!</CardTitle>
-           <CardDescription>Log in to your LankaForecaster account.</CardDescription>
+           <div className="flex justify-center items-center mb-4">
+             <TrendingUpIcon className="w-12 h-12 text-primary" /> {/* LankaForecaster Logo */}
+           </div>
+           <CardTitle className="text-3xl font-bold text-primary">Welcome Back!</CardTitle>
+           <CardDescription className="text-muted-foreground">Log in to your LankaForecaster account.</CardDescription>
          </CardHeader>
          <CardContent>
            <Form {...form}>
@@ -76,9 +81,9 @@
                  name="email"
                  render={({ field }) => (
                    <FormItem>
-                     <FormLabel>Email Address</FormLabel>
+                     <FormLabel className="text-foreground">Email Address</FormLabel> {/* Use foreground text */}
                      <FormControl>
-                       <Input placeholder="you@company.com" {...field} />
+                       <Input placeholder="you@company.com" {...field} className="bg-input text-foreground border-input" /> {/* Use input styles */}
                      </FormControl>
                      <FormMessage />
                    </FormItem>
@@ -89,31 +94,27 @@
                  name="password"
                  render={({ field }) => (
                    <FormItem>
-                     <FormLabel>Password</FormLabel>
+                     <FormLabel className="text-foreground">Password</FormLabel> {/* Use foreground text */}
                      <FormControl>
-                       <Input type="password" placeholder="********" {...field} />
+                       <Input type="password" placeholder="********" {...field} className="bg-input text-foreground border-input" /> {/* Use input styles */}
                      </FormControl>
                      <FormMessage />
                    </FormItem>
                  )}
                />
-               <Button type="submit" className="w-full bg-primary hover:bg-primary/90">
+               <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90">
                  Log In
                </Button>
              </form>
            </Form>
          </CardContent>
-         <CardFooter className="flex flex-col items-center text-sm space-y-2">
+         <CardFooter className="flex flex-col items-center text-sm space-y-2 pt-4 border-t border-border"> {/* Add border */}
            <p className="text-muted-foreground">
              Don't have an account?{' '}
              <Link href="/signup" className="text-primary hover:underline">
                Sign up
              </Link>
            </p>
-           {/* Optional: Add forgot password link */}
-           {/* <Link href="/forgot-password" className="text-xs text-muted-foreground hover:underline">
-             Forgot password?
-           </Link> */}
          </CardFooter>
        </Card>
      </div>

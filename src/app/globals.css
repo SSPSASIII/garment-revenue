@@ -8,42 +8,42 @@ body {
 
 @layer base {
   :root {
-    --background: 0 0% 98%; /* Off-White */
-    --foreground: 0 0% 10%; /* Dark Gray/Near Black */
-    --card: 0 0% 100%; /* White */
-    --card-foreground: 0 0% 10%;
-    --popover: 0 0% 100%;
-    --popover-foreground: 0 0% 10%;
-    --primary: 0 70% 50%; /* Red */
+    --background: 0 0% 8%; /* Very Dark Gray/Near Black */
+    --foreground: 0 0% 95%; /* Near White */
+    --card: 0 0% 12%; /* Slightly lighter dark */
+    --card-foreground: 0 0% 95%;
+    --popover: 0 0% 12%;
+    --popover-foreground: 0 0% 95%;
+    --primary: 0 80% 55%; /* Red */
     --primary-foreground: 0 0% 98%; /* Off-white for contrast on red */
-    --secondary: 0 0% 94%; /* Light Gray */
-    --secondary-foreground: 0 0% 10%;
-    --muted: 0 0% 94%;
-    --muted-foreground: 0 0% 40%;
-    --accent: 0 0% 50%; /* Medium Gray */
-    --accent-foreground: 0 0% 98%; /* White text on gray accent */
-    --destructive: 0 80% 55%; /* Brighter Red */
+    --secondary: 0 0% 20%; /* Dark Gray */
+    --secondary-foreground: 0 0% 80%; /* Light Gray */
+    --muted: 0 0% 20%;
+    --muted-foreground: 0 0% 60%; /* Medium Gray */
+    --accent: 0 80% 65%; /* Lighter Red for accents */
+    --accent-foreground: 0 0% 10%; /* Dark text on red accent */
+    --destructive: 0 90% 60%; /* Brighter/More intense Red for destructive actions */
     --destructive-foreground: 0 0% 98%;
-    --border: 0 0% 85%; /* Light Gray border */
-    --input: 0 0% 90%; /* Slightly darker input background */
-    --ring: 0 70% 50%; /* Red Ring */
+    --border: 0 0% 25%; /* Darker Gray border */
+    --input: 0 0% 18%; /* Slightly lighter dark input */
+    --ring: 0 80% 60%; /* Red Ring */
     /* Charts - Using Red/Gray theme */
-    --chart-1: 0 70% 60%; /* Lighter Red */
-    --chart-2: 0 0% 50%; /* Gray */
-    --chart-3: 0 70% 40%; /* Darker Red */
-    --chart-4: 0 0% 70%; /* Light Gray */
-    --chart-5: 0 70% 55%; /* Mid Red */
+    --chart-1: 0 80% 70%; /* Lighter Red */
+    --chart-2: 0 0% 60%; /* Gray */
+    --chart-3: 0 80% 50%; /* Mid Red */
+    --chart-4: 0 0% 80%; /* Light Gray */
+    --chart-5: 0 80% 65%; /* Mid-Bright Red */
     --radius: 0.75rem; /* Slightly more rounded */
-    --shadow: 220 10% 20%; /* Shadow color */
+    --shadow: 0 0% 0%; /* Black shadow */
     /* Sidebar - Adjusted for Red/Black/Gray theme */
-    --sidebar-background: 0 0% 98%; /* Off-White */
-    --sidebar-foreground: 0 0% 10%; /* Dark Gray/Black */
-    --sidebar-primary: 0 70% 50%; /* Red */
-    --sidebar-primary-foreground: 0 0% 98%; /* Off-white */
-    --sidebar-accent: 0 0% 92%; /* Slightly darker gray accent */
-    --sidebar-accent-foreground: 0 0% 10%; /* Dark Gray/Black */
-    --sidebar-border: 0 0% 85%; /* Light Gray border */
-    --sidebar-ring: 0 70% 50%; /* Red */
+    --sidebar-background: 0 0% 10%; /* Darker background */
+    --sidebar-foreground: 0 0% 95%; /* Near White */
+    --sidebar-primary: 0 80% 60%; /* Brighter Red */
+    --sidebar-primary-foreground: 0 0% 10%; /* Dark text */
+    --sidebar-accent: 0 0% 25%; /* Darker gray accent */
+    --sidebar-accent-foreground: 0 0% 90%; /* Lighter text */
+    --sidebar-border: 0 0% 25%; /* Darker Gray border */
+    --sidebar-ring: 0 80% 60%; /* Brighter Red */
   }
 
   .dark {
@@ -53,35 +53,35 @@ body {
     --card-foreground: 0 0% 95%;
     --popover: 0 0% 12%;
     --popover-foreground: 0 0% 95%;
-    --primary: 0 70% 60%; /* Brighter Red */
+    --primary: 0 80% 60%; /* Brighter Red */
     --primary-foreground: 0 0% 10%; /* Dark text on bright red */
     --secondary: 0 0% 20%; /* Dark Gray */
     --secondary-foreground: 0 0% 80%; /* Light Gray */
     --muted: 0 0% 20%;
     --muted-foreground: 0 0% 60%; /* Medium Gray */
-    --accent: 0 0% 70%; /* Lighter Gray */
-    --accent-foreground: 0 0% 10%; /* Dark text on light gray accent */
-    --destructive: 0 80% 65%; /* Brighter Red */
+    --accent: 0 80% 70%; /* Lighter Red for accents in dark mode */
+    --accent-foreground: 0 0% 10%; /* Dark text on light red accent */
+    --destructive: 0 90% 65%; /* Brighter Red for destructive actions */
     --destructive-foreground: 0 0% 10%;
     --border: 0 0% 25%; /* Darker Gray border */
     --input: 0 0% 18%; /* Slightly lighter dark input */
-    --ring: 0 70% 60%; /* Brighter Red */
+    --ring: 0 80% 60%; /* Brighter Red Ring */
     /* Charts - Adjusted for Dark Red/Gray theme */
-    --chart-1: 0 70% 70%; /* Light Red */
+    --chart-1: 0 80% 70%; /* Light Red */
     --chart-2: 0 0% 60%; /* Gray */
-    --chart-3: 0 70% 50%; /* Mid Red */
+    --chart-3: 0 80% 50%; /* Mid Red */
     --chart-4: 0 0% 80%; /* Light Gray */
-    --chart-5: 0 70% 65%; /* Mid-Bright Red */
+    --chart-5: 0 80% 65%; /* Mid-Bright Red */
     --shadow: 0 0% 0%; /* Black shadow for dark mode */
     /* Sidebar - Adjusted for Dark Red/Black/Gray theme */
     --sidebar-background: 0 0% 10%; /* Darker background */
     --sidebar-foreground: 0 0% 95%; /* Near White */
-    --sidebar-primary: 0 70% 60%; /* Brighter Red */
+    --sidebar-primary: 0 80% 60%; /* Brighter Red */
     --sidebar-primary-foreground: 0 0% 10%; /* Dark text */
     --sidebar-accent: 0 0% 25%; /* Darker gray accent */
     --sidebar-accent-foreground: 0 0% 90%; /* Lighter text */
     --sidebar-border: 0 0% 25%; /* Darker Gray border */
-    --sidebar-ring: 0 70% 60%; /* Brighter Red */
+    --sidebar-ring: 0 80% 60%; /* Brighter Red */
   }
 }
 

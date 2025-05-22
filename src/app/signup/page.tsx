@@ -31,7 +31,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { useToast } from '@/hooks/use-toast';
-import { FactoryIcon, UserIcon, PhoneIcon, UserCircleIcon } from 'lucide-react'; // Added PhoneIcon, UserCircleIcon
+import { FactoryIcon, UserIcon, PhoneIcon, UserCircleIcon, TrendingUpIcon } from 'lucide-react'; // Added TrendingUpIcon
 import { useRouter } from 'next/navigation'; // Import useRouter
 
 const formSchema = z.object({
@@ -71,6 +71,7 @@ export default function SignupPage() {
     toast({
       title: 'Signup Successful!',
       description: 'Welcome to LankaForecaster. Redirecting to login...',
+      variant: 'default',
     });
     // Redirect to login page after successful signup
      setTimeout(() => {
@@ -79,11 +80,14 @@ export default function SignupPage() {
   };
 
   return (
-    <div className="flex items-center justify-center min-h-screen bg-secondary p-4">
-      <Card className="w-full max-w-2xl shadow-lg border-primary/20">
+    <div className="flex items-center justify-center min-h-screen bg-background p-4"> {/* Use background color */}
+      <Card className="w-full max-w-2xl shadow-lg bg-card border-border text-foreground"> {/* Use card, border, and foreground */}
         <CardHeader className="text-center">
-          <CardTitle className="text-2xl font-bold text-primary">Create Your LankaForecaster Account</CardTitle>
-          <CardDescription>Join us to predict your garment industry revenue.</CardDescription>
+          <div className="flex justify-center items-center mb-4">
+             <TrendingUpIcon className="w-12 h-12 text-primary" /> {/* LankaForecaster Logo */}
+           </div>
+          <CardTitle className="text-3xl font-bold text-primary">Create Your Account</CardTitle> {/* Use primary text */}
+          <CardDescription className="text-muted-foreground">Join LankaForecaster to predict your garment industry revenue.</CardDescription>
         </CardHeader>
         <CardContent>
           <Form {...form}>
@@ -97,9 +101,9 @@ export default function SignupPage() {
                     name="email"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Email Address</FormLabel>
+                        <FormLabel className="text-foreground">Email Address</FormLabel>
                         <FormControl>
-                          <Input placeholder="you@company.com" {...field} />
+                          <Input placeholder="you@company.com" {...field} className="bg-input text-foreground border-input" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -110,9 +114,9 @@ export default function SignupPage() {
                     name="password"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Password</FormLabel>
+                        <FormLabel className="text-foreground">Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Minimum 8 characters" {...field} />
+                          <Input type="password" placeholder="Minimum 8 characters" {...field} className="bg-input text-foreground border-input" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -123,9 +127,9 @@ export default function SignupPage() {
                     name="confirmPassword"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Confirm Password</FormLabel>
+                        <FormLabel className="text-foreground">Confirm Password</FormLabel>
                         <FormControl>
-                          <Input type="password" placeholder="Re-enter password" {...field} />
+                          <Input type="password" placeholder="Re-enter password" {...field} className="bg-input text-foreground border-input" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -136,14 +140,14 @@ export default function SignupPage() {
                       name="role"
                       render={({ field }) => (
                         <FormItem>
-                          <FormLabel>Your Role</FormLabel>
+                          <FormLabel className="text-foreground">Your Role</FormLabel>
                           <Select onValueChange={field.onChange} defaultValue={field.value}>
                             <FormControl>
-                              <SelectTrigger>
+                              <SelectTrigger className="bg-input text-foreground border-input">
                                 <SelectValue placeholder="Select your role" />
                               </SelectTrigger>
                             </FormControl>
-                            <SelectContent>
+                            <SelectContent className="bg-popover text-popover-foreground border-border">
                               <SelectItem value="manager">Manager</SelectItem>
                               <SelectItem value="analyst">Analyst</SelectItem>
                               <SelectItem value="executive">Executive</SelectItem>
@@ -164,9 +168,9 @@ export default function SignupPage() {
                     name="companyName"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company Name</FormLabel>
+                        <FormLabel className="text-foreground">Company Name</FormLabel>
                         <FormControl>
-                          <Input placeholder="Your Garment Company Ltd." {...field} />
+                          <Input placeholder="Your Garment Company Ltd." {...field} className="bg-input text-foreground border-input" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
@@ -177,25 +181,24 @@ export default function SignupPage() {
                     name="companyAddress"
                     render={({ field }) => (
                       <FormItem>
-                        <FormLabel>Company Address (Optional)</FormLabel>
+                        <FormLabel className="text-foreground">Company Address (Optional)</FormLabel>
                         <FormControl>
-                          <Input placeholder="123 Textile Avenue, Colombo" {...field} />
+                          <Input placeholder="123 Textile Avenue, Colombo" {...field} className="bg-input text-foreground border-input" />
                         </FormControl>
                         <FormMessage />
                       </FormItem>
                     )}
                   />
-                  {/* Add more company-specific fields if needed */}
                 </div>
               </div>
 
-              <Button type="submit" className="w-full bg-primary hover:bg-primary/90 mt-8"> {/* Added margin-top */}
+              <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 mt-8"> {/* Added margin-top */}
                 Create Account
               </Button>
             </form>
           </Form>
         </CardContent>
-        <CardFooter className="flex flex-col items-center text-sm space-y-3 pt-4 border-t"> {/* Added padding-top and border */}
+        <CardFooter className="flex flex-col items-center text-sm space-y-3 pt-6 border-t border-border"> {/* Added padding-top and border */}
           <p className="text-muted-foreground">
             Already have an account?{' '}
             <Link href="/login" className="text-primary hover:underline font-medium">

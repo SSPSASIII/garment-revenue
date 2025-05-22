@@ -2,6 +2,9 @@
  * @fileOverview API Key and Rate Limit Management Service.
  * Provides functions for retrieving API keys and checking rate limit statuses.
  */
+import dotenv from 'dotenv';
+
+dotenv.config(); // Load environment variables
 
 // Placeholder interface for rate limit status
 export interface RateLimitStatus {
@@ -17,9 +20,9 @@ export interface RateLimitStatus {
  * @returns An object containing API keys.
  */
 export async function getApiKeys(): Promise<Record<string, string | undefined>> {
-  console.log("Placeholder: Retrieving API keys...");
+  console.log("Attempting to retrieve API keys from environment variables...");
   // Example: Replace with actual logic to retrieve keys securely
-  return {
+  const keys = {
     cbsl: process.env.CBSL_API_KEY,
     cse: process.env.CSE_API_KEY,
     customs: process.env.CUSTOMS_API_KEY,
@@ -27,6 +30,8 @@ export async function getApiKeys(): Promise<Record<string, string | undefined>> 
     commodity: process.env.COMMODITY_API_KEY,
     news: process.env.NEWS_API_KEY,
   };
+  // console.log("Retrieved API keys:", keys); // Be cautious logging keys, even undefined ones.
+  return keys;
 }
 
 /**
