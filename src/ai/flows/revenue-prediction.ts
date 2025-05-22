@@ -24,22 +24,32 @@ const RevenuePredictionInputSchema = z.object({
     .string()
     .describe(
       'Historical quarterly revenue data in LKR, as a JSON string. Example: [{"name": "Q1 23", "revenue": 1500000}, ...]'
-    ),
-  productionCapacity: z.number().positive().describe('Current production capacity in units per quarter.'),
-  marketingSpend: z.number().nonnegative().describe('Marketing spend in the last quarter (LKR).'),
-  laborCostIndex: z.number().positive().describe('Index representing labor cost trend (1.0 = average).'),
+    )
+    .refine((val) => {
+        try {
+          const parsed = JSON.parse(val);
+          return Array.isArray(parsed) && parsed.every(item => 
+            typeof item === 'object' && item !== null && 
+            'name' in item && typeof item.name === 'string' &&
+            'revenue' in item && typeof item.revenue === 'number'
+          );
+        } catch (e) { return false; }
+      }, { message: "Invalid JSON. Expected array of {name: string, revenue: number (LKR)}." }),
+  productionCapacity: z.coerce.number().positive().describe('Current production capacity in units per quarter.'),
+  marketingSpend: z.coerce.number().nonnegative().describe('Marketing spend in the last quarter (LKR).'),
+  laborCostIndex: z.coerce.number().positive().describe('Index representing labor cost trend (1.0 = average).'),
   companyLifecycleStage: z.enum(['startup', 'growth', 'maturity', 'decline'], { required_error: "Company lifecycle stage is required."}).describe('The current stage of the company lifecycle.'),
   naturalDisasterLikelihood: z.enum(['low', 'medium', 'high'], { required_error: "Natural disaster likelihood is required."}).describe('The likelihood of a natural disaster impacting operations in the next quarter.'),
   
   // New enhanced inputs from EnhancedInputData
-  confirmedOrdersValue: z.number().positive().optional().describe('Total value of confirmed orders for the next period (LKR).'),
-  orderBacklog: z.number().nonnegative().optional().describe('Value of pending or backlogged orders (LKR).'),
-  top3BuyersPercentage: z.number().min(0).max(100).optional().describe('Percentage of revenue from top 3 buyers (0-100).'),
-  buyerRetentionRate: z.number().min(0).max(100).optional().describe('Annual buyer retention rate (0-100%).'),
-  firstPassQualityRate: z.number().min(0).max(100).optional().describe('First pass yield / quality rate (0-100%).'),
-  onTimeDeliveryRate: z.number().min(0).max(100).optional().describe('On-time delivery performance rate (0-100%).'),
-  currentExchangeRate: z.number().positive().optional().describe('Current LKR per USD exchange rate (e.g., 320.50).'),
-  additionalContext: z.string().optional().describe('Optional user-provided context (Note: Enhanced engine does not use this directly).'),
+  confirmedOrdersValue: z.coerce.number().positive().optional().describe('Total value of confirmed orders for the next period (LKR).'),
+  orderBacklog: z.coerce.number().nonnegative().optional().describe('Value of pending or backlogged orders (LKR).'),
+  top3BuyersPercentage: z.coerce.number().min(0).max(100).optional().describe('Percentage of revenue from top 3 buyers (0-100).'),
+  buyerRetentionRate: z.coerce.number().min(0).max(100).optional().describe('Annual buyer retention rate (0-100%).'),
+  firstPassQualityRate: z.coerce.number().min(0).max(100).optional().describe('First pass yield / quality rate (0-100%).'),
+  onTimeDeliveryRate: z.coerce.number().min(0).max(100).optional().describe('On-time delivery performance rate (0-100%).'),
+  currentExchangeRate: z.coerce.number().positive().optional().describe('Current LKR per USD exchange rate (e.g., 320.50).'),
+  // additionalContext: z.string().optional().describe('Optional user-provided context (Note: Enhanced engine does not use this directly).'), // Not directly used by engine
 });
 export type RevenuePredictionInput = z.infer<typeof RevenuePredictionInputSchema>;
 
@@ -51,19 +61,19 @@ const RevenuePredictionOutputSchema = z.object({
         nextQuarter: z.number().describe("Predicted revenue for the next quarter in LKR."),
         nextSixMonths: z.number().describe("Predicted revenue for the next six months in LKR."),
         nextYear: z.number().describe("Predicted revenue for the next year in LKR."),
-        confidence: z.number().min(0).max(100).describe("Prediction confidence score (0-100)."), // Engine returns 0-100
+        confidence: z.number().min(0).max(100).describe("Prediction confidence score (0-100)."),
         adjustmentFactor: z.number().describe("Factor applied for industry-specific adjustments."),
     }),
     insights: z.object({
         keyDrivers: z.array(z.object({
             factor: z.string(),
             impact: z.string(),
-            strength: z.any(), // Can be number or string
+            strength: z.union([z.string(), z.number()]), 
         })).describe("Key drivers influencing the prediction."),
         riskFactors: z.array(z.object({
             risk: z.string(),
             level: z.string(),
-            score: z.any(), // Can be number or string
+            score: z.union([z.string(), z.number()]),
         })).describe("Potential risk factors identified."),
     }),
     accuracy: z.string().describe("Estimated accuracy of the prediction model (e.g., '80-85%')."),
@@ -75,25 +85,21 @@ export type RevenuePredictionOutput = z.infer<typeof RevenuePredictionOutputSche
 export async function predictRevenue(
   input: RevenuePredictionInput
 ): Promise<RevenuePredictionOutput> {
-  // This function now directly calls the predictRevenueFlow
   return predictRevenueFlow(input);
 }
 
 
-// This Genkit flow now uses the EnhancedPredictionEngine
 const predictRevenueFlow = ai.defineFlow(
   {
     name: 'predictRevenueFlow',
     inputSchema: RevenuePredictionInputSchema,
-    outputSchema: RevenuePredictionOutputSchema, // Use the new output schema
+    outputSchema: RevenuePredictionOutputSchema, 
   },
   async (flowInput: RevenuePredictionInput): Promise<RevenuePredictionOutput> => {
     try {
-      // 1. Parse historicalRevenueData from JSON string to Array of objects
       let parsedHistoricalRevenue: HistoricalRevenueDataItem[];
       try {
         parsedHistoricalRevenue = JSON.parse(flowInput.historicalRevenueData);
-        // Basic validation for the parsed data structure
         if (!Array.isArray(parsedHistoricalRevenue) || 
             !parsedHistoricalRevenue.every(item => 
               typeof item === 'object' && item !== null && 
@@ -108,16 +114,14 @@ const predictRevenueFlow = ai.defineFlow(
         throw new Error(`Invalid historical revenue data JSON: ${e.message}`);
       }
 
-      // 2. Map flowInput to EnhancedInputData structure
       const engineInput: EnhancedInputData = {
-        historicalRevenue: parsedHistoricalRevenue, // Already parsed
+        historicalRevenue: parsedHistoricalRevenue,
         productionCapacity: flowInput.productionCapacity,
         marketingSpend: flowInput.marketingSpend,
         laborCostIndex: flowInput.laborCostIndex,
         companyLifecycleStage: flowInput.companyLifecycleStage,
         naturalDisasterLikelihood: flowInput.naturalDisasterLikelihood,
         
-        // New fields (optional, so they can be undefined if not provided by form)
         confirmedOrdersValue: flowInput.confirmedOrdersValue,
         orderBacklog: flowInput.orderBacklog,
         top3BuyersPercentage: flowInput.top3BuyersPercentage,
@@ -125,25 +129,16 @@ const predictRevenueFlow = ai.defineFlow(
         firstPassQualityRate: flowInput.firstPassQualityRate,
         onTimeDeliveryRate: flowInput.onTimeDeliveryRate,
         currentExchangeRate: flowInput.currentExchangeRate,
-        // Note: 'additionalContext' from flowInput is not directly used by EnhancedPredictionEngine.
-        // It could be logged or processed separately if needed.
       };
 
-      // 3. Call the EnhancedPredictionEngine
       const result: EnhancedPredictionOutput = await EnhancedPredictionEngine.generateEnhancedPrediction(engineInput);
       
-      // 4. Return the result (it should match the new RevenuePredictionOutputSchema)
-      // No complex mapping needed if EnhancedPredictionOutput and RevenuePredictionOutputSchema are aligned.
       return result;
 
     } catch (error: unknown) {
       const errorMessage = APIErrorHandler.handleApiError(error);
       console.error("Error during predictRevenueFlow (Enhanced Engine):", errorMessage, error);
-      // Re-throw a more user-friendly error or return a specific error structure
-      // This will be caught by the dashboard page's error handling
       throw new Error(`Prediction failed: ${errorMessage}`);
     }
   }
 );
-
-    

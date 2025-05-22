@@ -27,7 +27,7 @@ import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
 import { predictRevenue, type RevenuePredictionOutput, type RevenuePredictionInput } from '@/ai/flows/revenue-prediction';
 import { useToast } from '@/hooks/use-toast';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, Bar } from 'recharts';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import { Loader2, TrendingUp, AlertTriangle, Info, Activity, AlertCircle, Percent, DollarSign, Globe, Factory, CloudRain, Anchor, CalendarDays, BarChart2, BrainCircuit, Megaphone, Users, CheckCircle, ShoppingCart, FileText, Star, Briefcase, Target, HelpCircle } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
@@ -53,14 +53,14 @@ import {
 
 // Default historical data (can be overridden by user input)
 const defaultHistoricalData = [
-  { name: 'Q1 22', revenue: 140000000 },
-  { name: 'Q2 22', revenue: 130000000 },
-  { name: 'Q3 22', revenue: 155000000 },
-  { name: 'Q4 22', revenue: 150000000 },
-  { name: 'Q1 23', revenue: 160000000 },
-  { name: 'Q2 23', revenue: 175000000 },
-  { name: 'Q3 23', revenue: 180000000 },
-  { name: 'Q4 23', revenue: 170000000 },
+  { name: 'Q1 22', revenue: 1400000 }, // Adjusted to millions for LKR sensibility
+  { name: 'Q2 22', revenue: 1300000 },
+  { name: 'Q3 22', revenue: 1550000 },
+  { name: 'Q4 22', revenue: 1500000 },
+  { name: 'Q1 23', revenue: 1600000 },
+  { name: 'Q2 23', revenue: 1750000 },
+  { name: 'Q3 23', revenue: 1800000 },
+  { name: 'Q4 23', revenue: 1700000 },
 ];
 
 // Format LKR currency
@@ -70,12 +70,11 @@ const formatLKR = (value: number): string => {
 
 const formatLKRShort = (value: number): string => {
   if (value >= 1_000_000_000) return `LKR ${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `LKR ${(value / 1_000_000).toFixed(0)}M`;
+  if (value >= 1_000_000) return `LKR ${(value / 1_000_000).toFixed(1)}M`; // Show one decimal for millions
   if (value >= 1_000) return `LKR ${(value / 1_000).toFixed(0)}K`;
   return `LKR ${value}`;
 };
 
-// Updated form schema to include new fields for EnhancedPredictionEngine
 const formSchema = z.object({
   historicalRevenueData: z
     .string()
@@ -83,7 +82,7 @@ const formSchema = z.object({
     .refine((val) => {
       try {
         const parsed = JSON.parse(val);
-        return Array.isArray(parsed) && parsed.every(item => typeof item === 'object' && item !== null && 'name' in item && 'revenue' in item && typeof item.revenue === 'number');
+        return Array.isArray(parsed) && parsed.every(item => typeof item === 'object' && item !== null && 'name' in item && typeof item.name === 'string' && 'revenue' in item && typeof item.revenue === 'number');
       } catch (e) { return false; }
     }, { message: "Invalid JSON. Expected array of {name: string, revenue: number (LKR)}." }),
   productionCapacity: z.coerce.number().positive({ message: 'Production capacity must be a positive number.' }),
@@ -92,7 +91,6 @@ const formSchema = z.object({
   companyLifecycleStage: z.enum(['startup', 'growth', 'maturity', 'decline'], { required_error: 'Please select the company lifecycle stage.' }),
   naturalDisasterLikelihood: z.enum(['low', 'medium', 'high'], { required_error: 'Please select natural disaster likelihood.' }),
   
-  // New enhanced input fields (all optional as per engine design, but can be made required here if desired)
   confirmedOrdersValue: z.coerce.number().positive({ message: 'Confirmed orders value must be positive.' }).optional().or(z.literal('')),
   orderBacklog: z.coerce.number().nonnegative({ message: 'Order backlog cannot be negative.' }).optional().or(z.literal('')),
   top3BuyersPercentage: z.coerce.number().min(0).max(100, { message: 'Must be between 0-100.' }).optional().or(z.literal('')),
@@ -100,7 +98,7 @@ const formSchema = z.object({
   firstPassQualityRate: z.coerce.number().min(0).max(100, { message: 'Must be between 0-100.' }).optional().or(z.literal('')),
   onTimeDeliveryRate: z.coerce.number().min(0).max(100, { message: 'Must be between 0-100.' }).optional().or(z.literal('')),
   currentExchangeRate: z.coerce.number().positive({ message: 'Exchange rate must be positive.' }).optional().or(z.literal('')),
-  additionalContext: z.string().optional(),
+  // additionalContext: z.string().optional(), // Not used by current engine
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -112,44 +110,40 @@ export default function DashboardPage() {
   const [chartData, setChartData] = React.useState(defaultHistoricalData);
   const [currentYear, setCurrentYear] = React.useState<string | null>(null);
   
-  // Mocked external data for display - in real app, this might be fetched and shown,
-  // but EnhancedPredictionEngine fetches its own external data internally or uses fallbacks.
   const [displayExternalData, setDisplayExternalData] = React.useState({
-      exchangeRate: 325.50,
-      rawMaterialPrices: { cottonPriceLKR: 410, polyesterPriceLKR: 360, dyeCostIndex: 1.05 },
-      economicIndicators: { gdpGrowthRate: 1.8, inflationRate: 5.5, exportGrowthRate: 4.2, unemploymentRate: 4.9 }
+      exchangeRate: 305.75, // Updated default
+      rawMaterialPrices: { cottonPriceLKR: 390, polyesterPriceLKR: 340, dyeCostIndex: 1.02 }, // Updated defaults
+      economicIndicators: { gdpGrowthRate: 2.1, inflationRate: 4.5, exportGrowthRate: 3.8, unemploymentRate: 4.7 } // Updated defaults
   });
 
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      historicalRevenueData: JSON.stringify(defaultHistoricalData.slice(-4), null, 2),
+      historicalRevenueData: JSON.stringify(defaultHistoricalData.slice(-4), null, 2), // Use last 4 quarters
       productionCapacity: 50000,
-      marketingSpend: 500000,
+      marketingSpend: 500000, // LKR
       laborCostIndex: 1.0,
       companyLifecycleStage: 'growth',
       naturalDisasterLikelihood: 'low',
-      confirmedOrdersValue: '', // Optional fields start empty or with default
+      confirmedOrdersValue: '', 
       orderBacklog: '',
       top3BuyersPercentage: '',
       buyerRetentionRate: '',
       firstPassQualityRate: '',
       onTimeDeliveryRate: '',
       currentExchangeRate: '',
-      additionalContext: '',
+      // additionalContext: '',
     },
   });
 
   React.useEffect(() => {
     setCurrentYear(new Date().getFullYear().toString());
-    // Simulate fetching display data for the "Current Snapshot" card
-    // This is separate from the engine's internal data fetching
-    // For instance, you might fetch this from a different, faster source for UI display only.
+    // This is a mock fetch for display purposes; engine handles its own data.
     const fetchDisplayData = async () => {
-        // In a real app, you might fetch fresh data here for display.
-        // For now, using static defaults set in useState.
-        console.log("Dashboard using pre-set displayExternalData for UI snapshot.");
+      // In a real app, fetch fresh data here if needed for the "Current Snapshot" card.
+      // For this example, we use the static defaults in useState.
+      console.log("Dashboard using pre-set displayExternalData for UI snapshot. Engine fetches its own data or uses internal fallbacks.");
     };
     fetchDisplayData();
   }, []);
@@ -158,9 +152,13 @@ export default function DashboardPage() {
     setIsLoadingPrediction(true);
     setPrediction(null);
 
-    // Prepare data for the prediction flow, converting empty strings to undefined for optional numbers
     const flowInput: RevenuePredictionInput = {
-        ...data,
+        historicalRevenueData: data.historicalRevenueData,
+        productionCapacity: Number(data.productionCapacity),
+        marketingSpend: Number(data.marketingSpend),
+        laborCostIndex: Number(data.laborCostIndex),
+        companyLifecycleStage: data.companyLifecycleStage,
+        naturalDisasterLikelihood: data.naturalDisasterLikelihood,
         confirmedOrdersValue: data.confirmedOrdersValue === '' ? undefined : Number(data.confirmedOrdersValue),
         orderBacklog: data.orderBacklog === '' ? undefined : Number(data.orderBacklog),
         top3BuyersPercentage: data.top3BuyersPercentage === '' ? undefined : Number(data.top3BuyersPercentage),
@@ -184,12 +182,18 @@ export default function DashboardPage() {
       console.log("Prediction result (Enhanced Engine):", result);
       setPrediction(result);
 
-      addDoc(collection(db, "predictionsEnhanced"), {
-          input: flowInput, // Save the actual input sent to the flow
-          output: result,
-          predictionTimestamp: new Date()
-      }).then(docRef => console.log("Enhanced prediction data saved to Firestore with ID: ", docRef.id))
-        .catch(e => console.error("Error saving enhanced prediction to Firestore: ", e));
+      try {
+        await addDoc(collection(db, "predictionsEnhanced"), {
+            input: flowInput,
+            output: result,
+            predictionTimestamp: new Date()
+        });
+        console.log("Enhanced prediction data saved to Firestore.");
+      } catch (e) {
+        console.error("Error saving enhanced prediction to Firestore: ", e);
+        toast({ title: 'Firestore Error', description: 'Could not save prediction data.', variant: 'destructive' });
+      }
+      
 
       let nextQuarterLabel = 'Next Q (Pred.)';
       const lastHistoricalPoint = parsedHistoricalData[parsedHistoricalData.length - 1];
@@ -197,13 +201,12 @@ export default function DashboardPage() {
         const match = lastHistoricalPoint.name.match(/Q(\d)\s+(\d+)/);
         if (match) {
           let q = parseInt(match[1]), y = parseInt(match[2]);
-          let fy = y < 50 ? 2000 + y : 1900 + y;
+          let fy = y < 50 ? 2000 + y : 1900 + y; // Basic year formatting
           q === 4 ? (q = 1, fy += 1) : q += 1;
           nextQuarterLabel = `Q${q} ${fy.toString().slice(-2)} (Pred.)`;
         }
       }
       
-      // Use nextQuarter prediction for the chart, consistent with previous behavior
       setChartData([...parsedHistoricalData, { name: nextQuarterLabel, revenue: result.predictions.nextQuarter, predicted: true }]);
       toast({ title: 'Prediction Generated!', description: `Next Quarter Revenue: ${formatLKR(result.predictions.nextQuarter)}` });
 
@@ -228,18 +231,17 @@ export default function DashboardPage() {
 
       <main className="flex-grow container mx-auto px-6 py-8 grid grid-cols-1 lg:grid-cols-3 gap-8 items-start">
         <div className="lg:col-span-2 space-y-8">
-          {/* Current Indicators Snapshot Card - using static display data */}
           <Card className="shadow-md border-border">
              <CardHeader>
                <CardTitle className="flex items-center gap-2"><Globe className="text-primary" />Current Snapshot (Illustrative)</CardTitle>
                <CardDescription>Key external factors. Engine uses its own data/fallbacks.</CardDescription>
              </CardHeader>
              <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
-                <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-muted-foreground" /> LKR/USD: <span className="font-medium">{displayExternalData.exchangeRate}</span></div>
-                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-muted-foreground" /> GDP Growth: <span className="font-medium">{displayExternalData.economicIndicators.gdpGrowthRate}%</span></div>
-                <div className="flex items-center gap-2"><Percent className="w-4 h-4 text-muted-foreground" /> Inflation: <span className="font-medium">{displayExternalData.economicIndicators.inflationRate}%</span></div>
+                <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-muted-foreground" /> LKR/USD: <span className="font-medium">{displayExternalData.exchangeRate.toFixed(2)}</span></div>
+                <div className="flex items-center gap-2"><TrendingUp className="w-4 h-4 text-muted-foreground" /> GDP Growth: <span className="font-medium">{displayExternalData.economicIndicators.gdpGrowthRate.toFixed(1)}%</span></div>
+                <div className="flex items-center gap-2"><Percent className="w-4 h-4 text-muted-foreground" /> Inflation: <span className="font-medium">{displayExternalData.economicIndicators.inflationRate.toFixed(1)}%</span></div>
                 <div className="flex items-center gap-2"><Factory className="w-4 h-4 text-muted-foreground" /> Cotton LKR: <span className="font-medium">{displayExternalData.rawMaterialPrices.cottonPriceLKR}</span></div>
-                <div className="flex items-center gap-2"><Anchor className="w-4 h-4 text-muted-foreground" /> Export Growth: <span className="font-medium">{displayExternalData.economicIndicators.exportGrowthRate}%</span></div>
+                <div className="flex items-center gap-2"><Anchor className="w-4 h-4 text-muted-foreground" /> Export Growth: <span className="font-medium">{displayExternalData.economicIndicators.exportGrowthRate.toFixed(1)}%</span></div>
              </CardContent>
           </Card>
 
@@ -253,19 +255,18 @@ export default function DashboardPage() {
                 <LineChart data={chartData} margin={{ top: 5, right: 30, left: 20, bottom: 5 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={formatLKRShort} width={80} />
-                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} formatter={(value: number) => formatLKR(value)} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={formatLKRShort} width={90} />
+                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} formatter={(value: number, name: string, props: any) => formatLKR(value)} />
                   <Legend />
-                  <Line type="monotone" dataKey="revenue" name="Historical" stroke="hsl(var(--primary))" strokeWidth={2} activeDot={{ r: 6 }} />
+                  <Line type="monotone" dataKey="revenue" name="Historical Revenue" stroke="hsl(var(--primary))" strokeWidth={2} activeDot={{ r: 6 }} dot={{r: 3}} />
                   {prediction && chartData.find(d => d.predicted) && (
-                     <Line type="monotone" dataKey="revenue" name="Prediction (Next Q)" stroke="hsl(var(--accent))" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4 }} data={chartData.filter(d => d.predicted || chartData.indexOf(d) === chartData.length -2 && !chartData[chartData.length-1].predicted )}/>
+                     <Line type="monotone" dataKey="revenue" name="Predicted Revenue (Next Q)" stroke="hsl(var(--accent))" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4, fill: 'hsl(var(--accent))' }} data={chartData.filter(d => d.predicted || chartData.indexOf(d) === chartData.length - 2 && !chartData[chartData.length-1].predicted )}/>
                    )}
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
           </Card>
 
-          {/* Enhanced Prediction Analysis Card */}
           <Card className="shadow-md border-border">
             <CardHeader>
               <CardTitle className="flex items-center gap-2"><BrainCircuit className="text-primary" />Enhanced Prediction Analysis</CardTitle>
@@ -287,7 +288,7 @@ export default function DashboardPage() {
                   <AccordionItem value="item-1">
                     <AccordionTrigger className="text-lg font-semibold hover:no-underline">Forecasted Revenues (LKR)</AccordionTrigger>
                     <AccordionContent className="pt-2">
-                      <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3 text-sm">
                         <div><strong>Next Month:</strong> {formatLKR(prediction.predictions.nextMonth)}</div>
                         <div><strong>Next Quarter:</strong> {formatLKR(prediction.predictions.nextQuarter)}</div>
                         <div><strong>Next 6 Months:</strong> {formatLKR(prediction.predictions.nextSixMonths)}</div>
@@ -297,32 +298,32 @@ export default function DashboardPage() {
                   </AccordionItem>
                   <AccordionItem value="item-2">
                     <AccordionTrigger className="text-lg font-semibold hover:no-underline">Confidence & Accuracy</AccordionTrigger>
-                    <AccordionContent className="pt-2 space-y-2">
-                        <div className="flex items-center">
-                            <strong className="w-32">Confidence:</strong>
-                            <Progress value={prediction.predictions.confidence} className="w-40 h-2 mr-2" /> 
-                            <Badge>{prediction.predictions.confidence.toFixed(0)}%</Badge>
+                    <AccordionContent className="pt-2 space-y-3">
+                        <div className="flex items-center text-sm">
+                            <strong className="w-32 shrink-0">Confidence:</strong>
+                            <Progress value={prediction.predictions.confidence} className="w-40 h-2.5 mr-2 flex-grow" /> 
+                            <Badge className="ml-auto">{prediction.predictions.confidence.toFixed(0)}%</Badge>
                         </div>
-                        <div><strong>Accuracy Estimate:</strong> <Badge variant="secondary">{prediction.accuracy}</Badge></div>
-                        <div><strong>Adjustment Factor:</strong> <Badge variant="outline">{prediction.predictions.adjustmentFactor.toFixed(3)}</Badge></div>
+                        <div className="text-sm"><strong>Accuracy Estimate:</strong> <Badge variant="secondary">{prediction.accuracy}</Badge></div>
+                        <div className="text-sm"><strong>Adjustment Factor:</strong> <Badge variant="outline">{prediction.predictions.adjustmentFactor.toFixed(3)}</Badge></div>
                     </AccordionContent>
                   </AccordionItem>
                    <AccordionItem value="item-3">
                     <AccordionTrigger className="text-lg font-semibold hover:no-underline">Key Drivers</AccordionTrigger>
-                    <AccordionContent className="pt-2 space-y-1">
+                    <AccordionContent className="pt-2 space-y-2">
                       {prediction.insights.keyDrivers.map((driver, idx) => (
-                        <div key={idx} className="text-sm p-2 bg-muted/30 rounded-md">
-                          <strong>{driver.factor}:</strong> Impact <Badge variant={driver.impact === 'Positive' ? 'default' : driver.impact === 'Negative' ? 'destructive' : 'secondary'}>{driver.impact}</Badge> (Strength: {driver.strength})
+                        <div key={idx} className="text-sm p-3 bg-muted/30 rounded-md shadow-sm">
+                          <strong className="text-primary">{driver.factor}:</strong> Impact <Badge variant={driver.impact === 'Positive' ? 'default' : driver.impact === 'Negative' ? 'destructive' : 'secondary'}>{driver.impact}</Badge> (Strength: {typeof driver.strength === 'number' ? driver.strength.toFixed(1) : driver.strength})
                         </div>
                       ))}
                     </AccordionContent>
                   </AccordionItem>
                   <AccordionItem value="item-4">
                     <AccordionTrigger className="text-lg font-semibold hover:no-underline">Risk Factors</AccordionTrigger>
-                    <AccordionContent className="pt-2 space-y-1">
+                    <AccordionContent className="pt-2 space-y-2">
                        {prediction.insights.riskFactors.map((risk, idx) => (
-                        <div key={idx} className="text-sm p-2 bg-muted/30 rounded-md">
-                          <strong>{risk.risk}:</strong> Level <Badge variant={risk.level === 'High' ? 'destructive' : risk.level === 'Low' ? 'default' : 'secondary'}>{risk.level}</Badge> (Score: {risk.score})
+                        <div key={idx} className="text-sm p-3 bg-muted/30 rounded-md shadow-sm">
+                          <strong className="text-destructive">{risk.risk}:</strong> Level <Badge variant={risk.level === 'High' ? 'destructive' : risk.level === 'Low' ? 'default' : 'secondary'}>{risk.level}</Badge> (Score: {typeof risk.score === 'number' ? risk.score.toFixed(1) : risk.score})
                         </div>
                       ))}
                     </AccordionContent>
@@ -330,7 +331,7 @@ export default function DashboardPage() {
                   <AccordionItem value="item-5">
                     <AccordionTrigger className="text-lg font-semibold hover:no-underline">Recommendations</AccordionTrigger>
                     <AccordionContent className="pt-2">
-                      <ul className="list-disc list-inside space-y-1 text-sm">
+                      <ul className="list-disc list-inside space-y-1.5 text-sm pl-2">
                         {prediction.recommendations.map((rec, idx) => <li key={idx}>{rec}</li>)}
                       </ul>
                     </AccordionContent>
@@ -341,7 +342,6 @@ export default function DashboardPage() {
           </Card>
         </div>
 
-        {/* Right Column: Manual Input */}
         <div className="lg:col-span-1">
           <Card className="shadow-md sticky top-24 border-border bg-card">
             <CardHeader>
@@ -351,13 +351,12 @@ export default function DashboardPage() {
             <CardContent>
               <Form {...form}>
                 <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-                  {/* Core Inputs Accordion */}
-                  <Accordion type="single" collapsible defaultValue="core-inputs" className="w-full">
+                  <Accordion type="multiple" defaultValue={["core-inputs", "strategic-inputs"]} className="w-full">
                     <AccordionItem value="core-inputs">
                       <AccordionTrigger className="font-semibold hover:no-underline text-base">Core Financial & Operational Data</AccordionTrigger>
                       <AccordionContent className="pt-2 space-y-4">
                         <FormField control={form.control} name="historicalRevenueData" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><CalendarDays className="w-4 h-4"/>Hist. Revenue (JSON, LKR)</FormLabel><FormControl><Textarea placeholder='[{"name": "Q1 23", "revenue": 160000000}, ...]' className="min-h-[80px] font-mono text-xs resize-y" {...field} /></FormControl><FormDescription className="text-xs flex items-start gap-1 pt-1"><AlertCircle className="w-3 h-3 mt-0.5 shrink-0" /> Array of {"{name: 'Qx YY', revenue: num}"}</FormDescription><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><CalendarDays className="w-4 h-4"/>Hist. Revenue (JSON, LKR)</FormLabel><FormControl><Textarea placeholder='[{"name": "Q1 23", "revenue": 1600000}, ...]' className="min-h-[80px] font-mono text-xs resize-y" {...field} /></FormControl><FormDescription className="text-xs flex items-start gap-1 pt-1"><AlertCircle className="w-3 h-3 mt-0.5 shrink-0" /> Array of {"{name: 'Qx YY', revenue: num}"}</FormDescription><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="productionCapacity" render={({ field }) => (
                           <FormItem><FormLabel className="flex items-center gap-1"><Factory className="w-4 h-4"/>Production Capacity (Units/Q)</FormLabel><FormControl><Input type="number" placeholder="e.g., 50000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="marketingSpend" render={({ field }) => (
@@ -374,7 +373,7 @@ export default function DashboardPage() {
                         <FormField control={form.control} name="naturalDisasterLikelihood" render={({ field }) => (
                           <FormItem><FormLabel className="flex items-center gap-1"><CloudRain className="w-4 h-4"/>Nat. Disaster Likelihood (Next Q)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                          <FormField control={form.control} name="currentExchangeRate" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4"/>Current LKR/USD Rate (Optional)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 320.50" {...field} /></FormControl><FormDescription className="text-xs">Overrides engine's default/fetched if provided.</FormDescription><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4"/>Current LKR/USD Rate (Optional)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 305.75" {...field} /></FormControl><FormDescription className="text-xs">Overrides engine's default/fetched if provided.</FormDescription><FormMessage /></FormItem>)} />
                       </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="enhanced-inputs">
@@ -395,17 +394,16 @@ export default function DashboardPage() {
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
-                  <FormField control={form.control} name="additionalContext" render={({ field }) => (
-                    <FormItem><FormLabel className="flex items-center gap-1"><Info className="w-4 h-4"/>Additional Context (Optional)</FormLabel><FormControl><Textarea placeholder="e.g., Major new client, regulatory changes..." {...field} className="min-h-[60px] resize-y" /></FormControl><FormMessage /></FormItem>)} />
+                  {/* Additional context field is removed as it's not used by the current engine setup in the flow */}
                   
-                  <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-base py-3" disabled={isLoadingPrediction}>
+                  <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-base py-3 mt-6" disabled={isLoadingPrediction}>
                     {isLoadingPrediction ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Predicting...</> : <><TrendingUp className="mr-2 h-5 w-5" /> Predict Revenue (Enhanced)</>}
                   </Button>
                 </form>
               </Form>
             </CardContent>
              <CardFooter className="text-xs text-muted-foreground pt-4 border-t">
-                 <HelpCircle className="w-4 h-4 mr-1 shrink-0"/> Provide as much detail as possible for the most accurate forecast. Optional fields use sensible defaults.
+                 <HelpCircle className="w-4 h-4 mr-1.5 shrink-0"/> Provide as much detail as possible for the most accurate forecast. Optional fields use sensible defaults.
              </CardFooter>
           </Card>
         </div>
@@ -419,5 +417,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
