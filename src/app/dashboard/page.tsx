@@ -28,7 +28,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { predictRevenue, type RevenuePredictionOutput, type RevenuePredictionInput } from '@/ai/flows/revenue-prediction';
 import { useToast } from '@/hooks/use-toast';
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
-import { Loader2, TrendingUp, AlertTriangle, Info, Activity, AlertCircle, Percent, DollarSign, Globe, Factory, CloudRain, Anchor, CalendarDays, BarChart2, BrainCircuit, Megaphone, Users, CheckCircle, ShoppingCart, FileText, Star, Briefcase, Target, HelpCircle } from 'lucide-react';
+import { Loader2, TrendingUp, AlertTriangle, Info, Activity, AlertCircle, Percent, DollarSign, Globe, Factory, CloudRain, Anchor, CalendarDays, BarChart2, BrainCircuit, Megaphone, Users, CheckCircle, ShoppingCart, FileText, Star, Briefcase, Target, HelpCircle, Sigma, TrendingDown } from 'lucide-react';
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
@@ -53,14 +53,14 @@ import {
 
 // Default historical data (can be overridden by user input)
 const defaultHistoricalData = [
-  { name: 'Q1 22', revenue: 1400000 }, // Adjusted to millions for LKR sensibility
-  { name: 'Q2 22', revenue: 1300000 },
-  { name: 'Q3 22', revenue: 1550000 },
-  { name: 'Q4 22', revenue: 1500000 },
-  { name: 'Q1 23', revenue: 1600000 },
-  { name: 'Q2 23', revenue: 1750000 },
-  { name: 'Q3 23', revenue: 1800000 },
-  { name: 'Q4 23', revenue: 1700000 },
+  { name: 'Q1 22', revenue: 140000000 }, 
+  { name: 'Q2 22', revenue: 130000000 },
+  { name: 'Q3 22', revenue: 155000000 },
+  { name: 'Q4 22', revenue: 150000000 },
+  { name: 'Q1 23', revenue: 160000000 },
+  { name: 'Q2 23', revenue: 175000000 },
+  { name: 'Q3 23', revenue: 180000000 },
+  { name: 'Q4 23', revenue: 170000000 },
 ];
 
 // Format LKR currency
@@ -70,9 +70,9 @@ const formatLKR = (value: number): string => {
 
 const formatLKRShort = (value: number): string => {
   if (value >= 1_000_000_000) return `LKR ${(value / 1_000_000_000).toFixed(1)}B`;
-  if (value >= 1_000_000) return `LKR ${(value / 1_000_000).toFixed(1)}M`; // Show one decimal for millions
+  if (value >= 1_000_000) return `LKR ${(value / 1_000_000).toFixed(1)}M`; 
   if (value >= 1_000) return `LKR ${(value / 1_000).toFixed(0)}K`;
-  return `LKR ${value}`;
+  return `LKR ${value.toFixed(0)}`;
 };
 
 const formSchema = z.object({
@@ -98,7 +98,6 @@ const formSchema = z.object({
   firstPassQualityRate: z.coerce.number().min(0).max(100, { message: 'Must be between 0-100.' }).optional().or(z.literal('')),
   onTimeDeliveryRate: z.coerce.number().min(0).max(100, { message: 'Must be between 0-100.' }).optional().or(z.literal('')),
   currentExchangeRate: z.coerce.number().positive({ message: 'Exchange rate must be positive.' }).optional().or(z.literal('')),
-  // additionalContext: z.string().optional(), // Not used by current engine
 });
 
 type FormValues = z.infer<typeof formSchema>;
@@ -111,18 +110,18 @@ export default function DashboardPage() {
   const [currentYear, setCurrentYear] = React.useState<string | null>(null);
   
   const [displayExternalData, setDisplayExternalData] = React.useState({
-      exchangeRate: 305.75, // Updated default
-      rawMaterialPrices: { cottonPriceLKR: 390, polyesterPriceLKR: 340, dyeCostIndex: 1.02 }, // Updated defaults
-      economicIndicators: { gdpGrowthRate: 2.1, inflationRate: 4.5, exportGrowthRate: 3.8, unemploymentRate: 4.7 } // Updated defaults
+      exchangeRate: 300.50, 
+      rawMaterialPrices: { cottonPriceLKR: 405, polyesterPriceLKR: 355, dyeCostIndex: 1.03 },
+      economicIndicators: { gdpGrowthRate: 1.9, inflationRate: 5.2, exportGrowthRate: 4.0, unemploymentRate: 4.8 }
   });
 
 
   const form = useForm<FormValues>({
     resolver: zodResolver(formSchema),
     defaultValues: {
-      historicalRevenueData: JSON.stringify(defaultHistoricalData.slice(-4), null, 2), // Use last 4 quarters
+      historicalRevenueData: JSON.stringify(defaultHistoricalData.slice(-4), null, 2),
       productionCapacity: 50000,
-      marketingSpend: 500000, // LKR
+      marketingSpend: 5000000, // LKR
       laborCostIndex: 1.0,
       companyLifecycleStage: 'growth',
       naturalDisasterLikelihood: 'low',
@@ -133,19 +132,13 @@ export default function DashboardPage() {
       firstPassQualityRate: '',
       onTimeDeliveryRate: '',
       currentExchangeRate: '',
-      // additionalContext: '',
     },
   });
 
   React.useEffect(() => {
     setCurrentYear(new Date().getFullYear().toString());
-    // This is a mock fetch for display purposes; engine handles its own data.
-    const fetchDisplayData = async () => {
-      // In a real app, fetch fresh data here if needed for the "Current Snapshot" card.
-      // For this example, we use the static defaults in useState.
-      console.log("Dashboard using pre-set displayExternalData for UI snapshot. Engine fetches its own data or uses internal fallbacks.");
-    };
-    fetchDisplayData();
+    // Mock fetch for display; engine handles its own data or uses internal fallbacks.
+    console.log("Dashboard using pre-set displayExternalData for UI snapshot. Engine may fetch its own data or use internal fallbacks.");
   }, []);
 
   const onSubmit = async (data: FormValues) => {
@@ -183,15 +176,25 @@ export default function DashboardPage() {
       setPrediction(result);
 
       try {
+        // Create a new object for Firestore that doesn't include undefined values
+        const inputForFirestore: Partial<RevenuePredictionInput> = {};
+        for (const key of Object.keys(flowInput) as Array<keyof RevenuePredictionInput>) {
+          if (flowInput[key] !== undefined) {
+            // Type assertion to satisfy TypeScript when assigning to a Partial object
+            (inputForFirestore[key] as any) = flowInput[key];
+          }
+        }
+        
         await addDoc(collection(db, "predictionsEnhanced"), {
-            input: flowInput,
+            input: inputForFirestore, // Use the cleaned input object
             output: result,
             predictionTimestamp: new Date()
         });
         console.log("Enhanced prediction data saved to Firestore.");
-      } catch (e) {
-        console.error("Error saving enhanced prediction to Firestore: ", e);
-        toast({ title: 'Firestore Error', description: 'Could not save prediction data.', variant: 'destructive' });
+      } catch (error: unknown) {
+        console.error("Error saving enhanced prediction to Firestore: ", error);
+        const description = error instanceof Error ? error.message : 'Could not save prediction data to Firestore.';
+        toast({ title: 'Firestore Error', description, variant: 'destructive' });
       }
       
 
@@ -200,10 +203,11 @@ export default function DashboardPage() {
       if (lastHistoricalPoint?.name) {
         const match = lastHistoricalPoint.name.match(/Q(\d)\s+(\d+)/);
         if (match) {
-          let q = parseInt(match[1]), y = parseInt(match[2]);
-          let fy = y < 50 ? 2000 + y : 1900 + y; // Basic year formatting
+          let q = parseInt(match[1], 10);
+          let y = parseInt(match[2], 10);
+          let fy = y < 50 ? 2000 + y : (y < 100 ? 1900 + y : y); // Handle 2-digit and 4-digit years
           q === 4 ? (q = 1, fy += 1) : q += 1;
-          nextQuarterLabel = `Q${q} ${fy.toString().slice(-2)} (Pred.)`;
+          nextQuarterLabel = `Q${q} '${fy.toString().slice(-2)} (Pred.)`;
         }
       }
       
@@ -234,7 +238,7 @@ export default function DashboardPage() {
           <Card className="shadow-md border-border">
              <CardHeader>
                <CardTitle className="flex items-center gap-2"><Globe className="text-primary" />Current Snapshot (Illustrative)</CardTitle>
-               <CardDescription>Key external factors. Engine uses its own data/fallbacks.</CardDescription>
+               <CardDescription>Key external factors. Engine uses its own data or fallbacks if Firestore is unavailable.</CardDescription>
              </CardHeader>
              <CardContent className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-4 text-sm">
                 <div className="flex items-center gap-2"><DollarSign className="w-4 h-4 text-muted-foreground" /> LKR/USD: <span className="font-medium">{displayExternalData.exchangeRate.toFixed(2)}</span></div>
@@ -242,6 +246,7 @@ export default function DashboardPage() {
                 <div className="flex items-center gap-2"><Percent className="w-4 h-4 text-muted-foreground" /> Inflation: <span className="font-medium">{displayExternalData.economicIndicators.inflationRate.toFixed(1)}%</span></div>
                 <div className="flex items-center gap-2"><Factory className="w-4 h-4 text-muted-foreground" /> Cotton LKR: <span className="font-medium">{displayExternalData.rawMaterialPrices.cottonPriceLKR}</span></div>
                 <div className="flex items-center gap-2"><Anchor className="w-4 h-4 text-muted-foreground" /> Export Growth: <span className="font-medium">{displayExternalData.economicIndicators.exportGrowthRate.toFixed(1)}%</span></div>
+                <div className="flex items-center gap-2"><TrendingDown className="w-4 h-4 text-muted-foreground" /> Unemployment: <span className="font-medium">{displayExternalData.economicIndicators.unemploymentRate.toFixed(1)}%</span></div>
              </CardContent>
           </Card>
 
@@ -256,10 +261,10 @@ export default function DashboardPage() {
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
                   <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
                   <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={formatLKRShort} width={90} />
-                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} formatter={(value: number, name: string, props: any) => formatLKR(value)} />
+                  <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--card))', border: '1px solid hsl(var(--border))' }} formatter={(value: number) => formatLKR(value)} />
                   <Legend />
                   <Line type="monotone" dataKey="revenue" name="Historical Revenue" stroke="hsl(var(--primary))" strokeWidth={2} activeDot={{ r: 6 }} dot={{r: 3}} />
-                  {prediction && chartData.find(d => d.predicted) && (
+                  {prediction && chartData.some(d => d.predicted) && (
                      <Line type="monotone" dataKey="revenue" name="Predicted Revenue (Next Q)" stroke="hsl(var(--accent))" strokeWidth={2} strokeDasharray="5 5" dot={{ r: 4, fill: 'hsl(var(--accent))' }} data={chartData.filter(d => d.predicted || chartData.indexOf(d) === chartData.length - 2 && !chartData[chartData.length-1].predicted )}/>
                    )}
                 </LineChart>
@@ -356,11 +361,11 @@ export default function DashboardPage() {
                       <AccordionTrigger className="font-semibold hover:no-underline text-base">Core Financial & Operational Data</AccordionTrigger>
                       <AccordionContent className="pt-2 space-y-4">
                         <FormField control={form.control} name="historicalRevenueData" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><CalendarDays className="w-4 h-4"/>Hist. Revenue (JSON, LKR)</FormLabel><FormControl><Textarea placeholder='[{"name": "Q1 23", "revenue": 1600000}, ...]' className="min-h-[80px] font-mono text-xs resize-y" {...field} /></FormControl><FormDescription className="text-xs flex items-start gap-1 pt-1"><AlertCircle className="w-3 h-3 mt-0.5 shrink-0" /> Array of {"{name: 'Qx YY', revenue: num}"}</FormDescription><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><CalendarDays className="w-4 h-4"/>Hist. Revenue (JSON, LKR)</FormLabel><FormControl><Textarea placeholder='[{"name": "Q1 23", "revenue": 160000000}, ...]' className="min-h-[80px] font-mono text-xs resize-y" {...field} /></FormControl><FormDescription className="text-xs flex items-start gap-1 pt-1"><AlertCircle className="w-3 h-3 mt-0.5 shrink-0" /> Array of {"{name: 'Qx YY', revenue: num}"}</FormDescription><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="productionCapacity" render={({ field }) => (
                           <FormItem><FormLabel className="flex items-center gap-1"><Factory className="w-4 h-4"/>Production Capacity (Units/Q)</FormLabel><FormControl><Input type="number" placeholder="e.g., 50000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="marketingSpend" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><Megaphone className="w-4 h-4"/>Marketing Spend (Last Q, LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 500000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><Megaphone className="w-4 h-4"/>Marketing Spend (Last Q, LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 5000000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="laborCostIndex" render={({ field }) => (
                           <FormItem><FormLabel className="flex items-center gap-1"><Users className="w-4 h-4"/>Labor Cost Index (1.0 = avg)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 1.05" {...field} /></FormControl><FormMessage /></FormItem>)} />
                       </AccordionContent>
@@ -373,16 +378,16 @@ export default function DashboardPage() {
                         <FormField control={form.control} name="naturalDisasterLikelihood" render={({ field }) => (
                           <FormItem><FormLabel className="flex items-center gap-1"><CloudRain className="w-4 h-4"/>Nat. Disaster Likelihood (Next Q)</FormLabel><Select onValueChange={field.onChange} defaultValue={field.value}><FormControl><SelectTrigger><SelectValue placeholder="Select likelihood" /></SelectTrigger></FormControl><SelectContent><SelectItem value="low">Low</SelectItem><SelectItem value="medium">Medium</SelectItem><SelectItem value="high">High</SelectItem></SelectContent></Select><FormMessage /></FormItem>)} />
                          <FormField control={form.control} name="currentExchangeRate" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4"/>Current LKR/USD Rate (Optional)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 305.75" {...field} /></FormControl><FormDescription className="text-xs">Overrides engine's default/fetched if provided.</FormDescription><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><DollarSign className="w-4 h-4"/>Current LKR/USD Rate (Optional)</FormLabel><FormControl><Input type="number" step="0.01" placeholder="e.g., 300.50" {...field} /></FormControl><FormDescription className="text-xs">Overrides engine's default/fetched if provided.</FormDescription><FormMessage /></FormItem>)} />
                       </AccordionContent>
                     </AccordionItem>
                      <AccordionItem value="enhanced-inputs">
                       <AccordionTrigger className="font-semibold hover:no-underline text-base">Enhanced Metrics (Optional)</AccordionTrigger>
                       <AccordionContent className="pt-2 space-y-4">
                         <FormField control={form.control} name="confirmedOrdersValue" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><ShoppingCart className="w-4 h-4"/>Confirmed Orders Value (LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 25000000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><ShoppingCart className="w-4 h-4"/>Confirmed Orders Value (LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 250000000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="orderBacklog" render={({ field }) => (
-                          <FormItem><FormLabel className="flex items-center gap-1"><FileText className="w-4 h-4"/>Order Backlog Value (LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 5000000" {...field} /></FormControl><FormMessage /></FormItem>)} />
+                          <FormItem><FormLabel className="flex items-center gap-1"><FileText className="w-4 h-4"/>Order Backlog Value (LKR)</FormLabel><FormControl><Input type="number" placeholder="e.g., 50000000" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="top3BuyersPercentage" render={({ field }) => (
                           <FormItem><FormLabel className="flex items-center gap-1"><Target className="w-4 h-4"/>Revenue % from Top 3 Buyers</FormLabel><FormControl><Input type="number" min="0" max="100" placeholder="e.g., 65" {...field} /></FormControl><FormMessage /></FormItem>)} />
                         <FormField control={form.control} name="buyerRetentionRate" render={({ field }) => (
@@ -394,10 +399,9 @@ export default function DashboardPage() {
                       </AccordionContent>
                     </AccordionItem>
                   </Accordion>
-                  {/* Additional context field is removed as it's not used by the current engine setup in the flow */}
                   
                   <Button type="submit" className="w-full bg-primary text-primary-foreground hover:bg-primary/90 text-base py-3 mt-6" disabled={isLoadingPrediction}>
-                    {isLoadingPrediction ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Predicting...</> : <><TrendingUp className="mr-2 h-5 w-5" /> Predict Revenue (Enhanced)</>}
+                    {isLoadingPrediction ? <><Loader2 className="mr-2 h-5 w-5 animate-spin" />Predicting...</> : <><Sigma className="mr-2 h-5 w-5" /> Predict Revenue (Enhanced)</>}
                   </Button>
                 </form>
               </Form>
@@ -417,3 +421,4 @@ export default function DashboardPage() {
     </div>
   );
 }
+
