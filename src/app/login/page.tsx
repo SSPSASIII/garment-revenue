@@ -84,15 +84,11 @@
                    <FormItem>
                      <FormLabel className="text-foreground">Email Address</FormLabel> {/* Use foreground text */}
                      <FormControl>
-                      {/* Using plain HTML input for diagnosis */}
-                       <input
+                       <Input // Using custom Input component
                          type="email"
                          placeholder="you@company.com"
-                         {...field} // Spread field props (includes ref, name, value, onChange, onBlur)
-                         className={cn(
-                           "flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-base ring-offset-background file:border-0 file:bg-transparent file:text-sm file:font-medium file:text-foreground placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50 md:text-sm",
-                           "bg-input text-foreground border-input" // Original classes from custom Input
-                         )}
+                         {...field} 
+                         className="bg-input text-foreground border-input"
                        />
                      </FormControl>
                      <FormMessage />
@@ -106,7 +102,7 @@
                    <FormItem>
                      <FormLabel className="text-foreground">Password</FormLabel> {/* Use foreground text */}
                      <FormControl>
-                       <Input // Keeping custom Input for password field for now
+                       <Input 
                         type="password"
                         placeholder="********"
                         {...field}
