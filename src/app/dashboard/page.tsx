@@ -97,13 +97,13 @@ const formSchema = z.object({
   naturalDisasterLikelihood: z.enum(['low', 'medium', 'high'], { required_error: 'Please select natural disaster likelihood.' }),
   
   // Optional enhanced fields
-  confirmedOrdersValue: z.string().optional().refine(val => val === '' || !isNaN(parseFloat(val)) && parseFloat(val) >= 0, { message: 'Must be a positive number if provided.'}).transform(val => val === '' ? undefined : Number(val)),
-  orderBacklog: z.string().optional().refine(val => val === '' || !isNaN(parseFloat(val)) && parseFloat(val) >= 0, { message: 'Must be a non-negative number if provided.'}).transform(val => val === '' ? undefined : Number(val)),
-  top3BuyersPercentage: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' ? undefined : Number(val)),
-  buyerRetentionRate: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' ? undefined : Number(val)),
-  firstPassQualityRate: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' ? undefined : Number(val)),
-  onTimeDeliveryRate: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' ? undefined : Number(val)),
-  currentExchangeRate: z.string().optional().refine(val => val === '' || !isNaN(parseFloat(val)) && parseFloat(val) > 0, { message: 'Must be a positive number if provided.'}).transform(val => val === '' ? undefined : Number(val)),
+  confirmedOrdersValue: z.string().optional().refine(val => val === '' || !isNaN(parseFloat(val)) && parseFloat(val) >= 0, { message: 'Must be a positive number if provided.'}).transform(val => val === '' || val === undefined ? undefined : Number(val)),
+  orderBacklog: z.string().optional().refine(val => val === '' || !isNaN(parseFloat(val)) && parseFloat(val) >= 0, { message: 'Must be a non-negative number if provided.'}).transform(val => val === '' || val === undefined ? undefined : Number(val)),
+  top3BuyersPercentage: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' || val === undefined ? undefined : Number(val)),
+  buyerRetentionRate: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' || val === undefined ? undefined : Number(val)),
+  firstPassQualityRate: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' || val === undefined ? undefined : Number(val)),
+  onTimeDeliveryRate: z.string().optional().refine(val => val === '' || (!isNaN(parseFloat(val)) && parseFloat(val) >= 0 && parseFloat(val) <= 100), { message: 'Must be between 0-100 if provided.'}).transform(val => val === '' || val === undefined ? undefined : Number(val)),
+  currentExchangeRate: z.string().optional().refine(val => val === '' || !isNaN(parseFloat(val)) && parseFloat(val) > 0, { message: 'Must be a positive number if provided.'}).transform(val => val === '' || val === undefined ? undefined : Number(val)),
 });
 
 type FormValues = z.infer<typeof formSchema>;

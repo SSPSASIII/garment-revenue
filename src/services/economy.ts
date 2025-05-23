@@ -1,7 +1,7 @@
 /**
  * @fileOverview Service for fetching Sri Lankan economic indicators.
  * Intended for SERVER-SIDE use.
- * NOTE: This service currently returns default/mocked data as specific external API integrations are not configured with API keys.
+ * NOTE: This service currently returns default/mocked data.
  */
 import { APIErrorHandler } from './error-handler';
 
@@ -25,27 +25,30 @@ export interface EconomicIndicators {
    * The current average USD to LKR exchange rate.
    */
   exchangeRate: number;
+  /**
+   * Sri Lanka's export growth rate (annualized percentage).
+   */
+  exportGrowthRate: number;
 }
 
-// Default values to return as live API calls are not being made from this service.
+// Default values to return. The EnhancedPredictionEngine uses its own internal fallback mechanism
+// if Firestore data is unavailable. This service is not directly called by the current engine logic.
 const defaultIndicators: EconomicIndicators = {
-    gdpGrowthRate: 1.5, // Example default
-    inflationRate: 5.0, // Example default
-    unemploymentRate: 4.8, // Example default
-    exchangeRate: 300.0, // Example default (LKR per USD)
+    gdpGrowthRate: 1.5, 
+    inflationRate: 5.0,
+    unemploymentRate: 4.8,
+    exchangeRate: 300.0, // LKR per USD
+    exportGrowthRate: 3.0,
 };
 
 /**
  * Asynchronously retrieves Sri Lankan economic indicators.
- * Currently, this function returns default placeholder data as specific external API keys
- * for services like CBSL or World Bank are not configured for direct calls from this service.
- * The AI model itself will use its general knowledge.
+ * Currently, this function returns default placeholder data.
+ * The EnhancedPredictionEngine handles fetching external data.
  *
  * @returns A promise that resolves to an EconomicIndicators object containing default data.
  */
 export async function getEconomicIndicators(): Promise<EconomicIndicators> {
-  console.log("Returning default economic indicators (server-side). Real-time external API calls from this service are not configured with dedicated keys.");
-  // In a real scenario with API keys, you would fetch data here.
-  // For now, we return the default values.
+  console.log("economy.ts: Returning default economic indicators. The EnhancedPredictionEngine handles its own external data fetching.");
   return defaultIndicators;
 }

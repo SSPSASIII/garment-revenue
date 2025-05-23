@@ -3,8 +3,8 @@
 
 import type { ReactNode, Dispatch, SetStateAction } from 'react';
 import React, { createContext, useContext, useEffect, useState } from 'react';
-import { type User, onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, type AuthError } from 'firebase/auth';
-import { auth } from '@/lib/firebase'; // Your Firebase auth instance
+import { type User, onAuthStateChanged, signOut as firebaseSignOut, signInWithEmailAndPassword, createUserWithEmailAndPassword, type AuthError, type Auth } from 'firebase/auth';
+import { auth as firebaseAuthInstance } from '@/lib/firebase'; // Your Firebase auth instance
 import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
@@ -12,8 +12,8 @@ interface AuthContextType {
   loading: boolean;
   error: AuthError | null;
   setError: Dispatch<SetStateAction<AuthError | null>>;
-  signIn: typeof signInWithEmailAndPassword;
-  signUp: typeof createUserWithEmailAndPassword;
+  signIn: (auth: Auth, email: string, pass: string) => Promise<any>; // Adjusted for direct auth passing
+  signUp: (auth: Auth, email: string, pass: string) => Promise<any>; // Adjusted for direct auth passing
   signOut: () => Promise<void>;
 }
 
@@ -26,10 +26,10 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const router = useRouter();
 
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
+    const unsubscribe = onAuthStateChanged(firebaseAuthInstance, (currentUser) => {
       setUser(currentUser);
       setLoading(false);
-      setError(null);
+      setError(null); // Clear error on auth state change
     });
     return () => unsubscribe();
   }, []);
@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const signOutUser = async () => {
     setLoading(true);
     try {
-      await firebaseSignOut(auth);
+      await firebaseSignOut(firebaseAuthInstance); // Use the imported auth instance
       setUser(null);
       setError(null);
       router.push('/login'); // Redirect to login after sign out
@@ -48,9 +48,45 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setLoading(false);
     }
   };
+  
+  // Wrapper for signIn to match expected signature if needed, or use directly
+  const handleSignIn = async (authInstance: Auth, email: string, pass: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await signInWithEmailAndPassword(authInstance, email, pass);
+    } catch (e) {
+      setError(e as AuthError);
+      throw e; // Re-throw to be caught by the calling component
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSignUp = async (authInstance: Auth, email: string, pass: string) => {
+    setLoading(true);
+    setError(null);
+    try {
+      return await createUserWithEmailAndPassword(authInstance, email, pass);
+    } catch (e) {
+      setError(e as AuthError);
+      throw e; // Re-throw
+    } finally {
+      setLoading(false);
+    }
+  };
+
 
   return (
-    <AuthContext.Provider value={{ user, loading, error, setError, signIn: signInWithEmailAndPassword, signUp: createUserWithEmailAndPassword, signOut: signOutUser }}>
+    <AuthContext.Provider value={{ 
+        user, 
+        loading, 
+        error, 
+        setError, 
+        signIn: handleSignIn, 
+        signUp: handleSignUp, 
+        signOut: signOutUser 
+    }}>
       {children}
     </AuthContext.Provider>
   );

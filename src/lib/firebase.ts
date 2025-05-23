@@ -32,7 +32,7 @@ if (process.env.NODE_ENV === 'development' && process.env.NEXT_PUBLIC_USE_FIREBA
   try {
     console.log("Connecting to Firestore emulator on localhost:8080");
     connectFirestoreEmulator(db, 'localhost', 8080);
-    console.log("Connecting to Auth emulator on localhost:9099");
+    console.log("Connecting to Auth emulator on http://localhost:9099"); // Corrected log
     connectAuthEmulator(auth, 'http://localhost:9099'); // Connect Auth emulator
   } catch (error) {
     console.error("Error connecting to Firebase emulators:", error);
